@@ -1,0 +1,10 @@
+# cache
+.cache
+
+# target
+build
+*.o
+*.a
+
+# others
+*.swp
