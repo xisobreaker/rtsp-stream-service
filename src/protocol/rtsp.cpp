@@ -39,7 +39,6 @@ int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const ch
         return -1;
     }
 
-    auto begin_ = high_resolution_clock::now();
     char buffer[MAX_RTSP_SIZE] = {0};
     int  length = 0;
 
@@ -49,10 +48,10 @@ int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const ch
         for (int i = 0; i < MAX_RTSP_SIZE; i++) {
             int ret = ::recv(fd, &ch, 1, 0);
             if (ret <= 0) {
-                printf("ret: %d", ret);
                 return ret;
             }
 
+            length++;
             if (ch == '\n') {
                 break;
             } else if (ch != '\r') {
@@ -64,10 +63,6 @@ int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const ch
             break;
         }
     }
-
-    auto end_ = high_resolution_clock::now();
-    auto costMS = duration_cast<microseconds>(end_ - begin_).count();
-    printf("cost: %ld\n", costMS);
     return length;
 }
 
