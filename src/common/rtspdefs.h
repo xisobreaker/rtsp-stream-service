@@ -246,7 +246,7 @@ typedef struct RTSPMessageHeader {
 } RTSPMessageHeader;
 
 /**********************************************************
- * RTSP url 地址解析后信息
+ * RTSP url 地址信息
  **********************************************************/
 typedef struct {
     char     proto[16];

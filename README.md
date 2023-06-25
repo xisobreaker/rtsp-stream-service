@@ -105,3 +105,268 @@ ffmpeg -rtsp_transport tcp -i "rtsp://192.168.1.100:554/cam/realmonitor?channel=
 ```bash
 ffmpeg -re -stream_loop -1 -i input.mp4 -c copy -f rtsp "rtsp://192.168.1.100:554/cam/realmonitor?channel=1&subtype=0"
 ```
+
+## 以下是一个完整的 RTSP 协议数据展示
+
+```
+OPTIONS rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0 RTSP/1.0
+CSeq: 1
+User-Agent: Lavf58.29.100
+
+RTSP/1.0 401 Unauthorized
+CSeq: 1
+WWW-Authenticate: Digest realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05"
+
+OPTIONS rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0 RTSP/1.0
+CSeq: 2
+User-Agent: Lavf58.29.100
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0", response="455412194d84f2672426f0fa3c9fa51e"
+
+RTSP/1.0 200 OK
+CSeq: 2
+Server: Rtsp Server/3.0
+Public: OPTIONS, DESCRIBE, ANNOUNCE, SETUP, PLAY, RECORD, PAUSE, TEARDOWN, SET_PARAMETER, GET_PARAMETER
+
+DESCRIBE rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0 RTSP/1.0
+Accept: application/sdp
+CSeq: 3
+User-Agent: Lavf58.29.100
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0", response="85309077dec089c2d7c565b892eb3098"
+
+RTSP/1.0 200 OK
+CSeq: 3
+x-Accept-Dynamic-Rate: 1
+Content-Base: rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/
+Cache-Control: must-revalidate
+Content-Length: 465
+Content-Type: application/sdp
+
+v=0
+o=- 2254270591 2254270591 IN IP4 0.0.0.0
+s=Media Server
+c=IN IP4 0.0.0.0
+t=0 0
+a=control:*
+a=packetization-supported:DH
+a=rtppayload-supported:DH
+a=range:npt=now-
+m=video 0 RTP/AVP 96
+a=control:trackID=0
+a=framerate:10.000000
+a=rtpmap:96 H264/90000
+a=fmtp:96 packetization-mode=1;profile-level-id=4D002A;sprop-parameter-sets=Z00AKpY1QPAET8s3BQEFAgA=,aO4xsgA=
+a=recvonly
+m=audio 0 RTP/AVP 8
+a=control:trackID=1
+a=rtpmap:8 PCMA/8000
+a=recvonly
+SETUP rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/trackID=0 RTSP/1.0
+Transport: RTP/AVP/UDP;unicast;client_port=18292-18293
+x-Dynamic-Rate: 0
+CSeq: 4
+User-Agent: Lavf58.29.100
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/trackID=0", response="56aaf7d7759ef992f1bd1771cbbc0a20"
+
+RTSP/1.0 200 OK
+CSeq: 4
+Session: 2936719851115;timeout=60
+Transport: RTP/AVP/UDP;unicast;client_port=18292-18293;server_port=23938-23939;ssrc=459838E1
+x-Dynamic-Rate: 1
+
+SETUP rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/trackID=1 RTSP/1.0
+Transport: RTP/AVP/UDP;unicast;client_port=18294-18295
+x-Dynamic-Rate: 0
+CSeq: 5
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/trackID=1", response="bcc1eb6d307fb31ff20d760d651bea8f"
+
+RTSP/1.0 200 OK
+CSeq: 5
+Session: 2936719851115;timeout=60
+Transport: RTP/AVP/UDP;unicast;client_port=18294-18295;server_port=23940-23941;ssrc=15AE4DD8
+x-Dynamic-Rate: 1
+
+PLAY rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+Range: npt=0.000-
+CSeq: 6
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="46fe71a4882a5376eb7dcdc13b21707c"
+
+RTSP/1.0 200 OK
+CSeq: 6
+Session: 2936719851115
+Range: npt=0.000000-
+RTP-Info: url=trackID=0;seq=14561;rtptime=14561,url=trackID=1;seq=14561;rtptime=14561
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 7
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 7
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 8
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 8
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 9
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 9
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 10
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 10
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 11
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 11
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 12
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 12
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 13
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 13
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 14
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 14
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 15
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 15
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 16
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 16
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 17
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 17
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 18
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 18
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 19
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 19
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 20
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 20
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 21
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 21
+Session: 2936719851115
+
+GET_PARAMETER rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 22
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="957abe572391c12dcd82f3a518813f2d"
+
+RTSP/1.0 200 OK
+CSeq: 22
+Session: 2936719851115
+
+TEARDOWN rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 23
+User-Agent: Lavf58.29.100
+Session: 2936719851115
+Authorization: Digest username="admin", realm="Login to edbba66a86f75696d122e195153df0a2", nonce="ba0294a902ef637b4ac19025d26d0a05", uri="rtsp://192.168.3.51:554/cam/realmonitor?channel=1&subtype=0/", response="8f4dbd0c98c7adabff9157afcecf5e51"
+
+RTSP/1.0 200 OK
+CSeq: 23
+Session: 2936719851115
+```

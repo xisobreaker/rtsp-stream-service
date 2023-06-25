@@ -16,7 +16,7 @@ char **string_split(const char *msg, const char *sep, int &count)
     return nullptr;
 }
 
-size_t string_lcpy(char *dst, const char *src, size_t maxlen)
+size_t string_cpy(char *dst, const char *src, size_t maxlen)
 {
     size_t len = 0;
     while (++len < maxlen && *src) {
@@ -34,7 +34,7 @@ size_t string_lcat(char *dst, const char *src, size_t maxlen)
     if (maxlen <= len + 1) {
         return len + strlen(src);
     }
-    return len + string_lcpy(dst + len, src, maxlen - len);
+    return len + string_cpy(dst + len, src, maxlen - len);
 }
 
 size_t snprint_lcatf(char *dst, size_t maxlen, const char *fmt, ...)
@@ -49,4 +49,16 @@ size_t snprint_lcatf(char *dst, size_t maxlen, const char *fmt, ...)
     va_end(vargs);
 
     return len;
+}
+
+bool string_istart(const char *str, const char *prefix, const char **ptr)
+{
+    while (*prefix && ch_tolower(*prefix) == ch_tolower(*str)) {
+        prefix++;
+        str++;
+    }
+    if (!(*prefix) && ptr) {
+        *ptr = str;
+    }
+    return !(*prefix);
 }
