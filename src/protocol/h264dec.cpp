@@ -1,4 +1,4 @@
-#include "sps-decode.h"
+#include "h264dec.h"
 #include <cmath>
 
 int U(uint8_t *pBuf, uint32_t &nStartBit, uint32_t nBitSize)
@@ -106,7 +106,6 @@ int h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps)
         sps.offset_for_non_ref_pic = Se(pBuf, nLen, nStartBit);
         sps.offset_for_top_to_bottom_field = Se(pBuf, nLen, nStartBit);
         sps.num_ref_frames_in_pic_order_cnt_cycle = Ue(pBuf, nLen, nStartBit);
-        sps.offset_for_ref_frame = new int[sps.num_ref_frames_in_pic_order_cnt_cycle];
         for (int i = 0; i < sps.num_ref_frames_in_pic_order_cnt_cycle; i++) {
             sps.offset_for_ref_frame[i] = Se(pBuf, nLen, nStartBit);
         }

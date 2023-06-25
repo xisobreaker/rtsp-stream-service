@@ -1,9 +1,8 @@
-#include "rtsp-encode.h"
+#include "rtspenc.h"
 
 #include "base64.h"
 #include "memutils.h"
-#include "rtsp-constants.h"
-#include "rtsp-utils.h"
+#include "rtsputils.h"
 #include "strutils.h"
 #include "urlcodec.h"
 #include <math.h>
@@ -14,29 +13,6 @@ using namespace std;
 #ifndef MAX_RTSP_SIZE
 #define MAX_RTSP_SIZE 4096
 #endif
-
-std::shared_ptr<char> http_auth_create_response(HTTPAuthState *state, const char *auth, const char *uri, const char *method)
-{
-    shared_ptr<char> authorization(new char[512], default_delete<char[]>());
-    if (state->auth_type == HTTP_AUTH_BASIC) {
-    } else if (state->auth_type == HTTP_AUTH_DIGEST) {
-        char *username = url_decode(auth, 0);
-        if (username) {
-            char *password = strchr(username, ':');
-            if (password) {
-                *password++ = '\0';
-                shared_ptr<char> response = make_digest_auth(state, username, password, uri, method);
-                snprint_lcatf(authorization.get(), 512, "Authorization: Digest username=\"%s\"", username);
-                snprint_lcatf(authorization.get(), 512, ", realm=\"%s\"", state->realm);
-                snprint_lcatf(authorization.get(), 512, ", nonce=\"%s\"", state->digest_params.nonce);
-                snprint_lcatf(authorization.get(), 512, ", uri=\"%s\"", uri);
-                snprint_lcatf(authorization.get(), 512, ", response=\"%s\"", response.get());
-            }
-            mem_free(username);
-        }
-    }
-    return authorization;
-}
 
 std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers)
 {

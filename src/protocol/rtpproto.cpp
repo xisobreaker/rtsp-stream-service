@@ -1,5 +1,5 @@
-#include "rtp-decode.h"
-#include "sps-decode.h"
+#include "h264dec.h"
+#include "rtpproto.h"
 
 #include <cstring>
 #include <list>
