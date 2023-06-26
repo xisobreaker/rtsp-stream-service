@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.10)
 
-project(rtsp-utils)
+project(rtsp_utils)
 
 add_subdirectory(common)
 add_subdirectory(protocol)

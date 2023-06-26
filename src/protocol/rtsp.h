@@ -200,4 +200,4 @@ int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const ch
 std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers);
 
 // 解析行数据
-void rtsp_parse_line(RTSPContext *ctx, char *buf, const char *method);
+void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *rt, const char *method);

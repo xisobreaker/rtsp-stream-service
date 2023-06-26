@@ -23,6 +23,30 @@ std::shared_ptr<char> make_digest_auth(
     return response;
 }
 
+void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *value)
+{
+    // if (!string_(key, "WWW-Authenticate") || !av_strcasecmp(key, "Proxy-Authenticate")) {
+    //     const char *p;
+    //     if (av_stristart(value, "Basic ", &p) && state->auth_type <= HTTP_AUTH_BASIC) {
+    //         state->auth_type = HTTP_AUTH_BASIC;
+    //         state->realm[0] = 0;
+    //         state->stale = 0;
+    //         ff_parse_key_value(p, (ff_parse_key_val_cb)handle_basic_params, state);
+    //     } else if (av_stristart(value, "Digest ", &p) && state->auth_type <= HTTP_AUTH_DIGEST) {
+    //         state->auth_type = HTTP_AUTH_DIGEST;
+    //         memset(&state->digest_params, 0, sizeof(DigestParams));
+    //         state->realm[0] = 0;
+    //         state->stale = 0;
+    //         ff_parse_key_value(p, (ff_parse_key_val_cb)handle_digest_params, state);
+    //         choose_qop(state->digest_params.qop, sizeof(state->digest_params.qop));
+    //         if (!av_strcasecmp(state->digest_params.stale, "true"))
+    //             state->stale = 1;
+    //     }
+    // } else if (!av_strcasecmp(key, "Authentication-Info")) {
+    //     ff_parse_key_value(value, (ff_parse_key_val_cb)handle_digest_update, state);
+    // }
+}
+
 std::shared_ptr<char> http_auth_create_response(HTTPAuthState *state, const char *auth, const char *uri, const char *method)
 {
     shared_ptr<char> authorization(new char[512], default_delete<char[]>());

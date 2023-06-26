@@ -16,7 +16,7 @@ char **string_split(const char *msg, const char *sep, int &count)
     return nullptr;
 }
 
-size_t string_cpy(char *dst, const char *src, size_t maxlen)
+size_t string_copy(char *dst, const char *src, size_t maxlen)
 {
     size_t len = 0;
     while (++len < maxlen && *src) {
@@ -25,7 +25,7 @@ size_t string_cpy(char *dst, const char *src, size_t maxlen)
     if (len <= maxlen) {
         *dst = 0;
     }
-    return len + strlen(src) - 1;
+    return len - 1;
 }
 
 size_t string_lcat(char *dst, const char *src, size_t maxlen)
@@ -34,7 +34,7 @@ size_t string_lcat(char *dst, const char *src, size_t maxlen)
     if (maxlen <= len + 1) {
         return len + strlen(src);
     }
-    return len + string_cpy(dst + len, src, maxlen - len);
+    return len + string_copy(dst + len, src, maxlen - len);
 }
 
 size_t snprint_lcatf(char *dst, size_t maxlen, const char *fmt, ...)
@@ -61,4 +61,26 @@ bool string_istart(const char *str, const char *prefix, const char **ptr)
         *ptr = str;
     }
     return !(*prefix);
+}
+
+int string_compare(const char *a, const char *b)
+{
+    uint8_t c1, c2;
+    do {
+        c1 = ch_tolower(*a++);
+        c2 = ch_tolower(*b++);
+    } while (c1 && c1 == c2);
+    return c1 - c2;
+}
+
+int string_ncompare(const char *a, const char *b, size_t n)
+{
+    uint8_t c1, c2;
+    if (n <= 0)
+        return 0;
+    do {
+        c1 = ch_tolower(*a++);
+        c2 = ch_tolower(*b++);
+    } while (--n && c1 && c1 == c2);
+    return c1 - c2;
 }

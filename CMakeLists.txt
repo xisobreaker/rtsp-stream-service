@@ -10,9 +10,12 @@ include_directories(${CMAKE_SOURCE_DIR}/src/common)
 include_directories(${CMAKE_SOURCE_DIR}/src/utils)
 include_directories(${CMAKE_SOURCE_DIR}/src/protocol)
 
+enable_testing()
+
 add_subdirectory(src)
+add_subdirectory(test)
 
 aux_source_directory(. DIR_SOURCES)
 add_executable(${PROJECT_NAME} ${DIR_SOURCES})
 
-target_link_libraries(${PROJECT_NAME} rtsp-utils)
+target_link_libraries(${PROJECT_NAME} rtsp_utils)
