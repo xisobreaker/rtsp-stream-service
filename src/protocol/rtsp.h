@@ -191,13 +191,22 @@ typedef struct RTSPState {
     char *localaddr;
 } RTSPState;
 
+// 获取字符串，直到分割符
 void get_str_until_chars(char *buf, int buf_size, const char *sep, const char **pp);
+
+// 获取字符串，跳过斜杠
+void get_str_skip_slash(char *buf, int buf_size, const char *sep, const char **pp);
+
+// 获取区间数据
+void rtsp_parse_range(int *min_ptr, int *max_ptr, const char **pp);
 
 // 发送命令
 int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const char *uri, const char *headers);
 
 // 命令数据编码
 std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers);
+
+void rtsp_parse_transport(RTSPContext *ctx, RTSPMessageHeader *reply, const char *p);
 
 // 解析行数据
 void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *rt, const char *method);

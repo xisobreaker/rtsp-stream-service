@@ -63,7 +63,7 @@ bool string_istart(const char *str, const char *prefix, const char **ptr)
     return !(*prefix);
 }
 
-int string_compare(const char *a, const char *b)
+int string_casecmp(const char *a, const char *b)
 {
     uint8_t c1, c2;
     do {
@@ -73,7 +73,7 @@ int string_compare(const char *a, const char *b)
     return c1 - c2;
 }
 
-int string_ncompare(const char *a, const char *b, size_t n)
+int string_casencmp(const char *a, const char *b, size_t n)
 {
     uint8_t c1, c2;
     if (n <= 0)

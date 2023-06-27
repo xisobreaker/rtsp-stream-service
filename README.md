@@ -4,8 +4,9 @@
 
 RTSP(Real-TimeStream Protocol )是一种基于文本的应用层协议，一般默认端口为 554。
 
-RTSP 1.0: [`RFC 2326`](https://www.rfc-editor.org/rfc/rfc2326)
-RTSP 2.0: [`RFC 7826`](https://www.rfc-editor.org/rfc/rfc7826)
+RTSP 1.0: [`Real Time Streaming Protocol (RTSP)`](https://www.rfc-editor.org/rfc/rfc2326)
+
+RTSP 2.0: [`Real-Time Streaming Protocol Version 2.0`](https://www.rfc-editor.org/rfc/rfc7826)
 
 当使用 TCP 方式传输数据时，会使用 Interleaved Frame 来传输数据。Interleaved Frame 封装格式使用美元符号 $ 作为起始符（0x24）占一个字节，之后是一个字节的通道标识，然后是两个字节的数据包长度（网络字节序），最后是跟随的数据，如 RTP 包。
 

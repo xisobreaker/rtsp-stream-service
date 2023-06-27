@@ -45,4 +45,14 @@ size_t snprint_lcatf(char *dst, size_t maxlen, const char *fmt, ...);
  **********************************************************/
 bool string_istart(const char *str, const char *prefix, const char **ptr);
 
+/**********************************************************
+ * 字符串比较（忽略大小写）
+ **********************************************************/
+int string_casecmp(const char *a, const char *b);
+
+/**********************************************************
+ * 字符串指定长度比较（忽略大小写）
+ **********************************************************/
+int string_casencmp(const char *a, const char *b, size_t n);
+
 #endif

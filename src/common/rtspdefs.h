@@ -10,6 +10,7 @@
 #define RTSP_RTP_PORT_MIN 5000
 #define RTSP_RTP_PORT_MAX 65000
 #define SDP_MAX_SIZE 16384
+#define RTSP_NOPTS_VALUE ((int64_t)UINT64_C(0x8000000000000000))
 
 /**********************************************************
  * RTSP 命令字
@@ -178,9 +179,6 @@ typedef struct RTSPTransportField {
  * 描述服务器对每个RTSP命令的响应。
  **********************************************************/
 typedef struct RTSPMessageHeader {
-    /** length of the data following this header */
-    int content_length;
-
     enum RTSPStatusCode status_code; /**< response code from server */
 
     /** number of items in the 'transports' variable below */
@@ -190,15 +188,11 @@ typedef struct RTSPMessageHeader {
      * AV_TIME_BASE unit, AV_NOPTS_VALUE if not used */
     int64_t range_start, range_end;
 
-    /** describes the complete "Transport:" line of the server in response
-     * to a SETUP RTSP command by the client */
+    int                content_length;
     RTSPTransportField transports[RTSP_MAX_TRANSPORTS];
-
-    int seq; /**< sequence number */
-
-    /** the "Session:" field. This value is initially set by the server and
-     * should be re-transmitted by the client in every RTSP command. */
-    char session_id[512];
+    int                seq;
+    char               session_id[512];
+    int                timeout;
 
     /** the "Location:" field. This value is used to handle redirection.
      */
@@ -215,14 +209,6 @@ typedef struct RTSPMessageHeader {
      * (RealServer compatible)" or "RealServer Version v.e.r.sion (platform)",
      * where platform is the output of $uname -msr | sed 's/ /-/g'. */
     char server[64];
-
-    /** The "timeout" comes as part of the server response to the "SETUP"
-     * command, in the "Session: <xyz>[;timeout=<value>]" line. It is the
-     * time, in seconds, that the server will go without traffic over the
-     * RTSP/TCP connection before it closes the connection. To prevent
-     * this, sent dummy requests (e.g. OPTIONS) with intervals smaller
-     * than this value. */
-    int timeout;
 
     /** The "Notice" or "X-Notice" field value. See
      * http://tools.ietf.org/html/draft-stiemerling-rtsp-announce-00
