@@ -1,1 +1,1 @@
-add_subdirectory(strutils)
+add_subdirectory(test_rtsp)

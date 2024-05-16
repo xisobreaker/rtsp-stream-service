@@ -371,3 +371,99 @@ RTSP/1.0 200 OK
 CSeq: 23
 Session: 2936719851115
 ```
+
+
+
+```
+OPTIONS rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0 RTSP/1.0
+CSeq: 2
+User-Agent: LibVLC/2.2.2 (LIVE555 Streaming Media v2016.02.09)
+
+RTSP/1.0 401 Unauthorized
+CSeq: 2
+WWW-Authenticate: Digest realm="Login to aa453f50378c821b6b22123cda43cba4", nonce="f610b28c7953f435cd7f80014c24bbac"
+
+OPTIONS rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0 RTSP/1.0
+CSeq: 3
+Authorization: Digest username="admin", realm="Login to aa453f50378c821b6b22123cda43cba4", nonce="f610b28c7953f435cd7f80014c24bbac", uri="rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0", response="a28020c7923c0f2606025a892c3862ff"
+User-Agent: LibVLC/2.2.2 (LIVE555 Streaming Media v2016.02.09)
+
+RTSP/1.0 200 OK
+CSeq: 3
+Server: Rtsp Server/3.0
+Public: OPTIONS, DESCRIBE, ANNOUNCE, SETUP, PLAY, RECORD, PAUSE, TEARDOWN, SET_PARAMETER, GET_PARAMETER
+
+DESCRIBE rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0 RTSP/1.0
+CSeq: 4
+Authorization: Digest username="admin", realm="Login to aa453f50378c821b6b22123cda43cba4", nonce="f610b28c7953f435cd7f80014c24bbac", uri="rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0", response="e3b4501044471c4e7e8e195b1823467d"
+User-Agent: LibVLC/2.2.2 (LIVE555 Streaming Media v2016.02.09)
+Accept: application/sdp
+
+RTSP/1.0 200 OK
+CSeq: 4
+x-Accept-Dynamic-Rate: 1
+Content-Base: rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/
+Cache-Control: must-revalidate
+Content-Length: 429
+Content-Type: application/sdp
+
+v=0
+o=- 2256453820 2256453820 IN IP4 0.0.0.0
+s=Media Server
+c=IN IP4 0.0.0.0
+t=0 0
+a=control:*
+a=packetization-supported:DH
+a=rtppayload-supported:DH
+a=range:npt=now-
+m=video 0 RTP/AVP 96
+a=control:trackID=0
+a=framerate:10.000000
+a=rtpmap:96 H264/90000
+a=fmtp:96 packetization-mode=1;profile-level-id=64001F;sprop-parameter-sets=Z2QAH6wbGoBQBb/m4CAgKAAAH0AAAnEHQwBj4AAas/XeXGhgDHwAA1Z+u8uFAA==,aO44MAA=
+a=recvonly
+SETUP rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/trackID=0 RTSP/1.0
+CSeq: 5
+Authorization: Digest username="admin", realm="Login to aa453f50378c821b6b22123cda43cba4", nonce="f610b28c7953f435cd7f80014c24bbac", uri="rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/", response="3571abaa9f7965bfce094bc81f590c10"
+User-Agent: LibVLC/2.2.2 (LIVE555 Streaming Media v2016.02.09)
+Transport: RTP/AVP;unicast;client_port=34234-34235
+
+RTSP/1.0 200 OK
+CSeq: 5
+Session: 220680501773;timeout=60
+Transport: RTP/AVP/UDP;unicast;client_port=34234-34235;server_port=20908-20909;ssrc=3E0C69CB
+x-Dynamic-Rate: 1
+
+PLAY rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 6
+Authorization: Digest username="admin", realm="Login to aa453f50378c821b6b22123cda43cba4", nonce="f610b28c7953f435cd7f80014c24bbac", uri="rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/", response="55f834aad601b71d5df3d5045b8e6979"
+User-Agent: LibVLC/2.2.2 (LIVE555 Streaming Media v2016.02.09)
+Session: 220680501773
+Range: npt=0.000-
+
+RTSP/1.0 200 OK
+CSeq: 6
+Session: 220680501773
+Range: npt=0.000000-
+RTP-Info: url=trackID=0;seq=27083;rtptime=1041000907
+
+GET_PARAMETER rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 7
+Authorization: Digest username="admin", realm="Login to aa453f50378c821b6b22123cda43cba4", nonce="f610b28c7953f435cd7f80014c24bbac", uri="rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/", response="e62d637dd4dcbc0b684b7f8d6fcc24b3"
+User-Agent: LibVLC/2.2.2 (LIVE555 Streaming Media v2016.02.09)
+Session: 220680501773
+
+RTSP/1.0 200 OK
+CSeq: 7
+Session: 220680501773
+
+TEARDOWN rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/ RTSP/1.0
+CSeq: 8
+Authorization: Digest username="admin", realm="Login to aa453f50378c821b6b22123cda43cba4", nonce="f610b28c7953f435cd7f80014c24bbac", uri="rtsp://192.168.2.49:554/cam/realmonitor?channel=1&subtype=0/", response="01d2ab3a39d559d2e62843208161bfdb"
+User-Agent: LibVLC/2.2.2 (LIVE555 Streaming Media v2016.02.09)
+Session: 220680501773
+
+RTSP/1.0 200 OK
+CSeq: 8
+Session: 220680501773
+```

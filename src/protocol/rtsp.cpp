@@ -1,14 +1,16 @@
 #include "rtsp.h"
+#include "base64.h"
+#include "rtsputils.h"
 #include "strutils.h"
 #include "timeutils.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <netdb.h>
 #include <string>
-
-#define SPACE_CHARS " \t\r\n"
 
 #ifndef MAX_RTSP_SIZE
 #define MAX_RTSP_SIZE 4096
@@ -185,32 +187,6 @@ int parse_timestr(int64_t *timeval, const char *timestr)
     return 0;
 }
 
-void get_str_until_chars(char *buf, int buf_size, const char *sep, const char **pp)
-{
-    const char *p = *pp;
-    char       *q = buf;
-
-    p += strspn(p, SPACE_CHARS);
-    while (!strchr(sep, *p) && (*p != '\0')) {
-        if ((q - buf) < buf_size - 1) {
-            *q++ = *p;
-        }
-        p++;
-    }
-    if (buf_size > 0) {
-        *q = '\0';
-    }
-    *pp = p;
-}
-
-void get_str_skip_slash(char *buf, int buf_size, const char *sep, const char **pp)
-{
-    if (**pp == '/') {
-        (*pp)++;
-    }
-    get_str_until_chars(buf, buf_size, sep, pp);
-}
-
 void rtsp_parse_range(int *min_ptr, int *max_ptr, const char **pp)
 {
     const char *q = *pp;
@@ -266,40 +242,6 @@ int get_sockaddr(const char *buf, struct sockaddr_storage *sock)
     memcpy(sock, ai->ai_addr, sizeof(sockaddr_storage));
     freeaddrinfo(ai);
     return 0;
-}
-
-int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const char *uri, const char *headers)
-{
-    std::shared_ptr<char> msg = rtsp_method_encode(ctx, "OPTIONS", uri, headers);
-    if (::send(fd, msg.get(), strlen(msg.get()), 0) <= 0) {
-        return -1;
-    }
-
-    char buffer[MAX_RTSP_SIZE] = {0};
-    int  length = 0;
-
-    for (;;) {
-        char  ch = '\0';
-        char *ptr = buffer;
-        for (int i = 0; i < MAX_RTSP_SIZE; i++) {
-            int ret = ::recv(fd, &ch, 1, 0);
-            if (ret <= 0) {
-                return ret;
-            }
-
-            length++;
-            if (ch == '\n') {
-                break;
-            } else if (ch != '\r') {
-                *ptr++ = ch;
-            }
-        }
-        *ptr = '\0';
-        if (buffer[0] == '\0') {
-            break;
-        }
-    }
-    return length;
 }
 
 void rtsp_parse_transport(RTSPContext *ctx, RTSPMessageHeader *reply, const char *p)
@@ -422,6 +364,37 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessageHeader *reply, const char
     }
 }
 
+std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers)
+{
+    std::shared_ptr<char> buf(new char[MAX_RTSP_SIZE], std::default_delete<char[]>());
+    snprintf(buf.get(), MAX_RTSP_SIZE, "%s %s RTSP/1.0\r\n", method, uri);
+    if (headers) {
+        string_lcat(buf.get(), headers, MAX_RTSP_SIZE);
+    }
+    snprint_lcatf(buf.get(), MAX_RTSP_SIZE, "CSeq: %d\r\n", ctx->seq++);
+    if (ctx->user_agent) {
+        snprint_lcatf(buf.get(), MAX_RTSP_SIZE, "User-Agent: %s\r\n", ctx->user_agent);
+    }
+    if (ctx->session_id[0] != '\0') {
+        snprint_lcatf(buf.get(), MAX_RTSP_SIZE, "Session: %s\r\n", ctx->session_id);
+    }
+    if (ctx->auth[0] != '\0') {
+        std::shared_ptr<char> auth = http_auth_create_response(&ctx->auth_state, ctx->auth, uri, method);
+        if (auth) {
+            string_lcat(buf.get(), auth.get(), MAX_RTSP_SIZE);
+        }
+    }
+    string_lcat(buf.get(), "\r\n", MAX_RTSP_SIZE);
+
+    if (ctx->control_transport == RTSP_MODE_TUNNEL) {
+        int                   base64MaxSize = std::ceil(MAX_RTSP_SIZE / 3.0) * 4 + 1;
+        std::shared_ptr<char> base64Buf(new char[base64MaxSize], std::default_delete<char[]>());
+        base64_encode(buf.get(), strlen(buf.get()), base64Buf.get(), base64MaxSize);
+        buf = std::move(base64Buf);
+    }
+    return buf;
+}
+
 void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *state, const char *method)
 {
     const char *ptr = buf;
@@ -479,4 +452,41 @@ void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSP
         ptr += strspn(ptr, SPACE_CHARS);
         string_copy(reply->stream_id, ptr, sizeof(reply->stream_id));
     }
+}
+
+int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const char *uri, const char *headers)
+{
+    std::shared_ptr<char> msg = rtsp_method_encode(ctx, "OPTIONS", uri, headers);
+    if (::send(fd, msg.get(), strlen(msg.get()), 0) <= 0) {
+        return -1;
+    }
+
+    char        buffer[MAX_RTSP_SIZE] = {0};
+    int         length = 0;
+    std::string response;
+
+    for (;;) {
+        char  ch = '\0';
+        char *ptr = buffer;
+        for (int i = 0; i < MAX_RTSP_SIZE; i++) {
+            int ret = ::recv(fd, &ch, 1, 0);
+            if (ret <= 0) {
+                return ret;
+            }
+
+            length++;
+            if (ch == '\n') {
+                break;
+            } else if (ch != '\r') {
+                *ptr++ = ch;
+            }
+        }
+        *ptr = '\0';
+
+        if (buffer[0] == '\0') {
+            break;
+        }
+    }
+    std::cout << buffer << std::endl;
+    return length;
 }

@@ -1,9 +1,26 @@
 #include "rtsp.h"
+#include "rtspdefs.h"
+#include "rtsputils.h"
 #include <cstring>
+#include <glog/logging.h>
 #include <iostream>
+
 using namespace std;
 
-int main(int argc, char *argv[])
+void test_parse_video_url()
+{
+    RTSPUrlInfo info;
+    memset(&info, 0, sizeof(RTSPUrlInfo));
+    split_video_url(&info, "rtsp://admin:password@192.168.2.13/cam/realmonitor?channel=1&subtype=0");
+
+    LOG(INFO) << "proto:         " << info.proto;
+    LOG(INFO) << "authorization: " << info.authorization;
+    LOG(INFO) << "hostname:      " << info.hostname;
+    LOG(INFO) << "port:          " << info.port;
+    LOG(INFO) << "path:          " << info.path;
+}
+
+void test_rtsp_parse_line()
 {
     RTSPContext       *ctx = new RTSPContext;
     RTSPMessageHeader *reply = new RTSPMessageHeader;
@@ -28,6 +45,10 @@ int main(int argc, char *argv[])
 
     char range[] = "Range: npt=3.51-324.39";
     rtsp_parse_line(ctx, reply, range, state, "PLAY");
+}
 
+int main(int argc, char *argv[])
+{
+    test_parse_video_url();
     return 0;
 }

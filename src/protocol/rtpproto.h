@@ -49,12 +49,18 @@ typedef struct {
     unsigned int csrc[15]; /*  optional CSRC list */
 } rtp_hdr_t;
 
+/**********************************************************
+ * RTP nalu header
+ **********************************************************/
 typedef struct {
     int f;
     int nri;
     int type;
 } rtp_nalu_hdr_t;
 
+/**********************************************************
+ * RTP h264 nalu
+ **********************************************************/
 typedef struct {
     int  finish;
     int  type;
