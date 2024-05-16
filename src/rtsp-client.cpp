@@ -1,5 +1,6 @@
 #include "rtsp-client.h"
 #include "rtsp.h"
+#include "rtspdefs.h"
 
 #include <arpa/inet.h>
 #include <cstdio>
@@ -55,12 +56,21 @@ bool RTSPClient::connectServer(const char *ip, uint16_t port)
 
 bool RTSPClient::rtspTransport(std::string url)
 {
-    char         recvbuf[MAX_BUFFER_SIZE] = {0};
-    int16_t      recvlen = 0;
-    RTSPContext *ctx = new RTSPContext;
-    memset(ctx, 0, sizeof(RTSPContext));
+    // char    recvbuf[MAX_BUFFER_SIZE] = {0};
+    // int16_t recvlen = 0;
 
-    if (!rtsp_send_cmd_content(m_sockfd, ctx, "OPTIONS", url.c_str(), NULL)) {
+    unsigned char *content_ptr = nullptr;
+
+    RTSPContext       *ctx = new RTSPContext;
+    RTSPMessageHeader *reply = new RTSPMessageHeader;
+    memset(ctx, 0, sizeof(RTSPContext));
+    memset(ctx, 0, sizeof(RTSPMessageHeader));
+
+    if (rtsp_send_cmd_content(m_sockfd, ctx, "OPTIONS", url.c_str(), NULL) != 0) {
+        goto fail;
+    }
+
+    if (rtsp_read_reply(m_sockfd, reply, &content_ptr, "OPTIONS") != 0) {
         goto fail;
     }
     return true;

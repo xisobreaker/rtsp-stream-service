@@ -457,24 +457,33 @@ void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSP
 int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const char *uri, const char *headers)
 {
     std::shared_ptr<char> msg = rtsp_method_encode(ctx, "OPTIONS", uri, headers);
-    if (::send(fd, msg.get(), strlen(msg.get()), 0) <= 0) {
-        return -1;
-    }
 
-    char        buffer[MAX_RTSP_SIZE] = {0};
-    int         length = 0;
-    std::string response;
+    int sendLen = 0;
+    do {
+        int ret = ::send(fd, msg.get() + sendLen, strlen(msg.get()) - sendLen, 0);
+        if (ret <= 0) {
+            return -1;
+        }
+
+        sendLen += ret;
+    } while (sendLen == strlen(msg.get()));
+    return sendLen;
+}
+
+int rtsp_read_reply(int fd, RTSPMessageHeader *reply, unsigned char **content_ptr, const char *method)
+{
+    char line_buf[MAX_RTSP_SIZE] = {0};
+    int  line_len = 0;
 
     for (;;) {
         char  ch = '\0';
-        char *ptr = buffer;
+        char *ptr = line_buf;
         for (int i = 0; i < MAX_RTSP_SIZE; i++) {
             int ret = ::recv(fd, &ch, 1, 0);
             if (ret <= 0) {
                 return ret;
             }
 
-            length++;
             if (ch == '\n') {
                 break;
             } else if (ch != '\r') {
@@ -483,10 +492,14 @@ int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const ch
         }
         *ptr = '\0';
 
-        if (buffer[0] == '\0') {
+        if (line_buf[0] == '\0') {
             break;
         }
+
+        if (line_len == 0) {
+        } else {
+        }
+        line_len++;
     }
-    std::cout << buffer << std::endl;
-    return length;
+    return 0;
 }

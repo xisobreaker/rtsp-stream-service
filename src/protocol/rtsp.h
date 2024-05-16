@@ -99,5 +99,13 @@ std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, c
  */
 void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *rt, const char *method);
 
-// 发送命令
+/**
+ * 发送命令
+ * @param fd socker 套接字
+ */
 int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const char *uri, const char *headers);
+
+/**
+ * 接收应答
+ */
+int rtsp_read_reply(int fd, RTSPMessageHeader *reply, unsigned char **content_ptr, const char *method);
