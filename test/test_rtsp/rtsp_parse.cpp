@@ -8,17 +8,26 @@
 
 using namespace std;
 
-TEST(TEST_RTSP, SPLIT_VIDEO_URL)
+TEST(TEST_RTSP, RTSP_TRANSPORT)
 {
-    RTSPUrlInfo info;
-    memset(&info, 0, sizeof(RTSPUrlInfo));
-    split_video_url(&info, "rtsp://admin:password@192.168.2.13:554/cam/realmonitor?channel=1&subtype=0");
+    std::string rtspUrl = "rtsp://admin:password@192.168.2.13:554/cam/"
+                          "realmonitor?channel=1&subtype=0";
 
+    RTSPUrlInfo info;
+    RTSPContext ctx;
+
+    memset(&info, 0, sizeof(RTSPUrlInfo));
+    memset(&ctx, 0, sizeof(RTSPContext));
+
+    split_video_url(&info, rtspUrl.c_str());
     EXPECT_STREQ(info.proto, "rtsp");
     EXPECT_STREQ(info.authorization, "admin:password");
     EXPECT_STREQ(info.hostname, "192.168.2.13");
     EXPECT_EQ(info.port, 554);
     EXPECT_STREQ(info.path, "/cam/realmonitor?channel=1&subtype=0");
+
+    std::string options_req = rtsp_method_encode(&ctx, "OPTIONS", rtspUrl.c_str(), nullptr);
+    LOG(INFO) << "[" << options_req << "]";
 }
 
 TEST(TEST_RTSP, PARSE_LINE)
@@ -31,8 +40,9 @@ TEST(TEST_RTSP, PARSE_LINE)
     memset(reply, 0, sizeof(RTSPMessageHeader));
     memset(state, 0, sizeof(RTSPState));
 
-    char wwwAuth[] =
-        "WWW-Authenticate: Digest realm=\"Login to edbba66a86f75696d122e195153df0a2\", nonce=\"ba0294a902ef637b4ac19025d26d0a05\"";
+    char wwwAuth[] = "WWW-Authenticate: Digest realm=\"Login to "
+                     "edbba66a86f75696d122e195153df0a2\", "
+                     "nonce=\"ba0294a902ef637b4ac19025d26d0a05\"";
     rtsp_parse_line(ctx, reply, wwwAuth, state, "OPTIONS");
 
     char session[] = "Session: 2936719851115;timeout=60";

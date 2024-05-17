@@ -4,6 +4,9 @@
 
 #include <iomanip>
 
+/**********************************************************
+ * SPS 数据。
+ **********************************************************/
 typedef struct {
     int profile_idc;
     int constraint_set0_flag;
@@ -81,6 +84,9 @@ typedef struct {
     int max_dec_frame_buffering;
 } sps_data_t;
 
+/**********************************************************
+ * PPS 数据。
+ **********************************************************/
 typedef struct {
 } pps_data_t;
 

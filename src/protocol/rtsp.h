@@ -87,7 +87,9 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessageHeader *reply, const char
  * @param uri
  * @param headers
  */
-std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers);
+std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers);
+
+void rtsp_method_decode(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *rt, const char *method);
 
 /**
  * 解析行数据
@@ -98,12 +100,6 @@ std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, c
  * @param method
  */
 void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *rt, const char *method);
-
-/**
- * 发送命令
- * @param fd socker 套接字
- */
-int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const char *uri, const char *headers);
 
 /**
  * 接收应答

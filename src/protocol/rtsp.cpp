@@ -14,7 +14,7 @@
 #include <string>
 
 #ifndef MAX_RTSP_SIZE
-#define MAX_RTSP_SIZE 4096
+    #define MAX_RTSP_SIZE 4096
 #endif
 
 using namespace std;
@@ -30,9 +30,9 @@ int parse_timestr(int64_t *timeval, const char *timestr)
     //     int64_t                  t, now64;
     //     time_t                   now;
     //     struct tm                dt = {0}, tmbuf;
-    //     int                      today = 0, negative = 0, microseconds = 0, suffix = 1000000;
-    //     int                      i;
-    //     static const char *const date_fmt[] = {
+    //     int                      today = 0, negative = 0, microseconds = 0,
+    //     suffix = 1000000; int                      i; static const char *const
+    //     date_fmt[] = {
     //         "%Y - %m - %d",
     //         "%Y%m%d",
     //     };
@@ -50,7 +50,8 @@ int parse_timestr(int64_t *timeval, const char *timestr)
     //     q = NULL;
     //     *timeval = INT64_MIN;
     //     if (!duration) {
-    //         now64 = chrono::duration_cast<chrono::microseconds>(high_resolution_clock::now().time_since_epoch()).count();
+    //         now64 =
+    //         chrono::duration_cast<chrono::microseconds>(high_resolution_clock::now().time_since_epoch()).count();
     //         now = now64 / 1000000;
 
     //         if (!av_strcasecmp(timestr, "now")) {
@@ -161,8 +162,8 @@ int parse_timestr(int64_t *timeval, const char *timestr)
     //             is_utc = 1;
     //         }
     //         if (today) { /* fill in today's date */
-    //             struct tm dt2 = is_utc ? *gmtime_r(&now, &tmbuf) : *localtime_r(&now, &tmbuf);
-    //             dt2.tm_hour = dt.tm_hour;
+    //             struct tm dt2 = is_utc ? *gmtime_r(&now, &tmbuf) :
+    //             *localtime_r(&now, &tmbuf); dt2.tm_hour = dt.tm_hour;
     //             dt2.tm_min = dt.tm_min;
     //             dt2.tm_sec = dt.tm_sec;
     //             dt = dt2;
@@ -365,10 +366,8 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessageHeader *reply, const char
     }
 }
 
-std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers)
+std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers)
 {
-    // std::shared_ptr<char> buf(new char[MAX_RTSP_SIZE], std::default_delete<char[]>());
-
     std::shared_ptr<char> buf = make_shared_ptr<char>(MAX_RTSP_SIZE);
     snprintf(buf.get(), MAX_RTSP_SIZE, "%s %s RTSP/1.0\r\n", method, uri);
     if (headers) {
@@ -395,7 +394,11 @@ std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, c
         base64_encode(buf.get(), strlen(buf.get()), base64Buf.get(), base64MaxSize);
         buf = std::move(base64Buf);
     }
-    return buf;
+    return std::string(buf.get());
+}
+
+void rtsp_method_decode(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *rt, const char *method)
+{
 }
 
 void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSPState *state, const char *method)
@@ -455,22 +458,6 @@ void rtsp_parse_line(RTSPContext *ctx, RTSPMessageHeader *reply, char *buf, RTSP
         ptr += strspn(ptr, SPACE_CHARS);
         string_copy(reply->stream_id, ptr, sizeof(reply->stream_id));
     }
-}
-
-int rtsp_send_cmd_content(int fd, RTSPContext *ctx, const char *method, const char *uri, const char *headers)
-{
-    std::shared_ptr<char> msg = rtsp_method_encode(ctx, "OPTIONS", uri, headers);
-
-    int sendLen = 0;
-    do {
-        int ret = ::send(fd, msg.get() + sendLen, strlen(msg.get()) - sendLen, 0);
-        if (ret <= 0) {
-            return -1;
-        }
-
-        sendLen += ret;
-    } while (sendLen == strlen(msg.get()));
-    return sendLen;
 }
 
 int rtsp_read_reply(int fd, RTSPMessageHeader *reply, unsigned char **content_ptr, const char *method)

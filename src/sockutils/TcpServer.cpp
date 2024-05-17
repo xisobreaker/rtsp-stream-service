@@ -1,25 +1,24 @@
-#include "rtsp-server.h"
+#include "TcpServer.h"
 
 #include <arpa/inet.h>
 #include <cstring>
-#include <memory>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #ifndef INVALID_SOCKET
-#define INVALID_SOCKET -1
+    #define INVALID_SOCKET -1
 #endif
 
-RTSPServer::RTSPServer(uint16_t port) : m_listenPort(port)
+TcpServer::TcpServer(uint16_t port) : m_listenPort(port)
 {
     m_sockfd = INVALID_SOCKET;
 }
 
-RTSPServer::~RTSPServer()
+TcpServer::~TcpServer()
 {
 }
 
-bool RTSPServer::listen(int flags)
+bool TcpServer::listen(int flags)
 {
     m_sockfd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_sockfd == INVALID_SOCKET) {
@@ -34,7 +33,7 @@ bool RTSPServer::listen(int flags)
 
     if (flags & SO_REUSEADDR) {
         int opt = 1;
-        if (setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt)) == -1) {
+        if (::setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt)) == -1) {
             return false;
         }
     }

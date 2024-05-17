@@ -2,12 +2,13 @@
 
 #include <string>
 
-class RTSPServer
+class TcpServer
 {
 public:
-    RTSPServer(uint16_t port);
-    ~RTSPServer();
+    TcpServer(uint16_t port);
+    ~TcpServer();
 
+private:
 public:
     bool listen(int flags = 2);
 

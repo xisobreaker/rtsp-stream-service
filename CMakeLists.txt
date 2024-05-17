@@ -29,5 +29,3 @@ endif()
 
 aux_source_directory(. DIR_SOURCES)
 add_executable(${PROJECT_NAME} ${DIR_SOURCES})
-
-target_link_libraries(${PROJECT_NAME} rtsp_utils)
