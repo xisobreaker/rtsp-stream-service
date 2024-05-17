@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.10)
 
-project(rtsputils)
+project(rtsp)
 
 include_directories(${project_include_dirs})
 
