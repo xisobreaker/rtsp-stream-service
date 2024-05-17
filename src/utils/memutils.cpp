@@ -6,9 +6,8 @@
 void *mem_malloc(size_t size)
 {
     void *ptr = malloc(size);
-    if (ptr) {
+    if (ptr)
         memset(ptr, 0, size);
-    }
     return ptr;
 }
 

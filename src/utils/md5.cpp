@@ -238,7 +238,7 @@ bool md5_encrypt_hex(unsigned char *dst, const unsigned char *src, int len)
     }
 
     for (int i = 0; i < 16; i++) {
-        dst[i * 2] = HEXMAP[(ret[i] >> 4) & 0xFF];
+        dst[i * 2] = HEXMAP[((ret[i] & 0xF0) >> 4)];
         dst[i * 2 + 1] = HEXMAP[ret[i] & 0x0F];
     }
     return true;

@@ -30,13 +30,12 @@ struct HTTPAuthState {
 /**
  * 生成 digest 加密串
  * @param state
- * @param username
- * @param password
- * @param uri
- * @param method
+ * @param username 用户名
+ * @param password 密码
+ * @param uri      uri 地址
+ * @param method   RTSP 命令
  */
-std::shared_ptr<char> make_digest_auth(
-    HTTPAuthState *state, const char *username, const char *password, const char *uri, const char *method);
+std::string make_digest_auth(HTTPAuthState *state, const char *username, const char *password, const char *uri, const char *method);
 
 // Authorization 数据处理
 void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *value);

@@ -1,20 +1,31 @@
 #include "urlcodec.h"
 #include "memutils.h"
 
-static inline int to_lower(int c)
+/**
+ * 大写字符转小写
+ * @param c ASCII 字符
+ */
+static inline unsigned char to_lower(unsigned char c)
 {
-    if (c >= 'A' && c <= 'Z') {
+    if (c >= 'A' && c <= 'Z')
         c ^= 0x20;
-    }
     return c;
 }
 
-static inline int is_digit(int c)
+/**
+ * 判断字符是否为数字
+ * @param c ASCII 字符
+ */
+static inline bool is_digit(unsigned char c)
 {
     return c >= '0' && c <= '9';
 }
 
-static inline int av_isxdigit(int c)
+/**
+ * 判断是否为 hex 字符
+ * @param c ASCII 字符
+ */
+static inline bool is_xdigit(unsigned char c)
 {
     c = to_lower(c);
     return (is_digit(c) || (c >= 'a' && c <= 'f'));
@@ -22,15 +33,13 @@ static inline int av_isxdigit(int c)
 
 char *url_decode(const char *url, int decode_plus_sign)
 {
-    if (!url) {
+    if (!url)
         return nullptr;
-    }
 
     int   url_len = strlen(url) + 1;
     char *dst = (char *)mem_malloc(url_len);
-    if (!dst) {
-        return NULL;
-    }
+    if (!dst)
+        return nullptr;
 
     int pos = 0, idx = 0;
     while (pos < url_len) {
@@ -38,7 +47,7 @@ char *url_decode(const char *url, int decode_plus_sign)
         if (c == '%' && pos + 2 < url_len) {
             char c2 = url[pos++];
             char c3 = url[pos++];
-            if (av_isxdigit(c2) && av_isxdigit(c3)) {
+            if (is_xdigit(c2) && is_xdigit(c3)) {
                 c2 = to_lower(c2);
                 c3 = to_lower(c3);
 

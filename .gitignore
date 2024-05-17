@@ -1,5 +1,6 @@
 # cache
 .cache
+.vscode
 
 # target
 build

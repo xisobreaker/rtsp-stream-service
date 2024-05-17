@@ -1,5 +1,6 @@
 #include "rtsp.h"
 #include "base64.h"
+#include "memutils.h"
 #include "rtsputils.h"
 #include "strutils.h"
 #include "timeutils.h"
@@ -22,7 +23,7 @@ using namespace chrono;
 int parse_timestr(int64_t *timeval, const char *timestr)
 {
     if (string_casecmp(timestr, "now")) {
-        *timeval = get_current_timestamp();
+        *timeval = get_current_microseconds();
         return 0;
     }
     //     const char              *p, *q;
@@ -366,7 +367,9 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessageHeader *reply, const char
 
 std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers)
 {
-    std::shared_ptr<char> buf(new char[MAX_RTSP_SIZE], std::default_delete<char[]>());
+    // std::shared_ptr<char> buf(new char[MAX_RTSP_SIZE], std::default_delete<char[]>());
+
+    std::shared_ptr<char> buf = make_shared_ptr<char>(MAX_RTSP_SIZE);
     snprintf(buf.get(), MAX_RTSP_SIZE, "%s %s RTSP/1.0\r\n", method, uri);
     if (headers) {
         string_lcat(buf.get(), headers, MAX_RTSP_SIZE);
@@ -388,7 +391,7 @@ std::shared_ptr<char> rtsp_method_encode(RTSPContext *ctx, const char *method, c
 
     if (ctx->control_transport == RTSP_MODE_TUNNEL) {
         int                   base64MaxSize = std::ceil(MAX_RTSP_SIZE / 3.0) * 4 + 1;
-        std::shared_ptr<char> base64Buf(new char[base64MaxSize], std::default_delete<char[]>());
+        std::shared_ptr<char> base64Buf((char *)mem_malloc(base64MaxSize), MemDeleter());
         base64_encode(buf.get(), strlen(buf.get()), base64Buf.get(), base64MaxSize);
         buf = std::move(base64Buf);
     }

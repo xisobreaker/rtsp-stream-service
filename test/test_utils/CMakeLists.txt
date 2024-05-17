@@ -1,4 +1,4 @@
-project(test_rtsp)
+project(test_utils)
 
 aux_source_directory(. DIR_SOURCES)
 add_executable(${PROJECT_NAME} ${DIR_SOURCES})

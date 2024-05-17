@@ -1,1 +1,2 @@
 add_subdirectory(test_rtsp)
+add_subdirectory(test_utils)
