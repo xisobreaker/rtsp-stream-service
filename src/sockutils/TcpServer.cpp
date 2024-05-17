@@ -9,6 +9,10 @@
     #define INVALID_SOCKET -1
 #endif
 
+#ifndef SOCKET_ERROR
+    #define SOCKET_ERROR -1
+#endif
+
 TcpServer::TcpServer(uint16_t port) : m_listenPort(port)
 {
     m_sockfd = INVALID_SOCKET;
@@ -16,6 +20,15 @@ TcpServer::TcpServer(uint16_t port) : m_listenPort(port)
 
 TcpServer::~TcpServer()
 {
+}
+
+bool TcpServer::reuseaddr()
+{
+    int opt = 1;
+    if (::setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt)) == -1) {
+        return false;
+    }
+    return true;
 }
 
 bool TcpServer::listen(int flags)
@@ -32,18 +45,15 @@ bool TcpServer::listen(int flags)
     serv_addr.sin_port = htons(m_listenPort);
 
     if (flags & SO_REUSEADDR) {
-        int opt = 1;
-        if (::setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt)) == -1) {
-            return false;
-        }
+        reuseaddr();
     }
 
-    if (::bind(m_sockfd, (sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
+    if (::bind(m_sockfd, (sockaddr *)&serv_addr, sizeof(serv_addr)) == SOCKET_ERROR) {
         ::close(m_sockfd);
         return false;
     }
 
-    if (::listen(m_sockfd, 5) == -1) {
+    if (::listen(m_sockfd, 5) == SOCKET_ERROR) {
         ::close(m_sockfd);
         return false;
     }

@@ -1,10 +1,4 @@
-#ifndef MD5_H_H_H
-#define MD5_H_H_H
-
-#include <cstring>
-#include <iomanip>
-#include <stdlib.h>
-#include <string>
+#pragma once
 
 /**
  * md5 加密
@@ -24,4 +18,20 @@ bool md5_encrypt(unsigned char *dst, const unsigned char *src, int len);
  */
 bool md5_encrypt_hex(unsigned char *dst, const unsigned char *src, int len);
 
-#endif
+/**
+ * base64 编码
+ * @param srcBuf
+ * @param srcLen
+ * @param dstBuf
+ * @param dstMaxLen
+ */
+int base64_encode(const char *srcBuf, int srcLen, char *dstBuf, int dstMaxLen);
+
+/**
+ * base64 解码
+ * @param srcBuf
+ * @param srcLen
+ * @param dstBuf
+ * @param dstMaxLen
+ */
+int base64_decode(const char *srcBuf, int srcLen, char *dstBuf, int dstMaxLen);

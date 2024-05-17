@@ -1,6 +1,5 @@
 #pragma once
 
-#include "rtsputils.h"
 #include <string>
 
 class TcpClient

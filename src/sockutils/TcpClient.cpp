@@ -9,8 +9,8 @@
     #define INVALID_SOCKET -1
 #endif
 
-#ifndef SOCKER_ERROR
-    #define SOCKER_ERROR -1
+#ifndef SOCKET_ERROR
+    #define SOCKET_ERROR -1
 #endif
 
 TcpClient::TcpClient()
@@ -41,7 +41,7 @@ bool TcpClient::connect(const char *ip, uint16_t port)
     sock_addr.sin_addr.s_addr = inet_addr(ip);
     sock_addr.sin_port = htons(port);
 
-    if (::connect(m_sockfd, (struct sockaddr *)&sock_addr, sizeof(sockaddr_in)) == SOCKER_ERROR) {
+    if (::connect(m_sockfd, (struct sockaddr *)&sock_addr, sizeof(sockaddr_in)) == SOCKET_ERROR) {
         this->close();
         return false;
     }

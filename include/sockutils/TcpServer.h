@@ -9,6 +9,8 @@ public:
     ~TcpServer();
 
 private:
+    bool reuseaddr();
+
 public:
     bool listen(int flags = 2);
 
