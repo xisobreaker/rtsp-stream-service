@@ -3,6 +3,17 @@
 #include "memutils.h"
 #include "strutils.h"
 #include "urlcodec.h"
+#include <memory>
+
+std::string make_basic_auth(const char *auth)
+{
+    int  length = strlen(auth);
+    char response[length * 2];
+    memset(response, 0, length * 2);
+
+    base64_encode(auth, strlen(auth), response, length * 2);
+    return std::string(response);
+}
 
 std::string make_digest_auth(HTTPAuthState *state, const char *username, const char *password, const char *uri, const char *method)
 {
@@ -20,8 +31,13 @@ std::string make_digest_auth(HTTPAuthState *state, const char *username, const c
 
 std::string http_auth_create_response(HTTPAuthState *state, const char *auth, const char *uri, const char *method)
 {
-    std::shared_ptr<char> authorization((char *)mem_malloc(512), MemDeleter());
+    std::shared_ptr<char> authorization(new char[512], std::default_delete<char[]>());
     if (state->auth_type == HTTP_AUTH_BASIC) {
+        char *username = url_decode(auth, 0);
+        if (username) {
+            std::string response = make_basic_auth(username);
+            snprint_lcatf(authorization.get(), 512, "Authorization: Basic %s\r\n", response.c_str());
+        }
     } else if (state->auth_type == HTTP_AUTH_DIGEST) {
         char *username = url_decode(auth, 0);
         if (username) {
@@ -33,7 +49,7 @@ std::string http_auth_create_response(HTTPAuthState *state, const char *auth, co
                 snprint_lcatf(authorization.get(), 512, ", realm=\"%s\"", state->realm);
                 snprint_lcatf(authorization.get(), 512, ", nonce=\"%s\"", state->digest_params.nonce);
                 snprint_lcatf(authorization.get(), 512, ", uri=\"%s\"", uri);
-                snprint_lcatf(authorization.get(), 512, ", response=\"%s\"", response.c_str());
+                snprint_lcatf(authorization.get(), 512, ", response=\"%s\"\r\n", response.c_str());
             }
             mem_free(username);
         }

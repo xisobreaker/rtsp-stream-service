@@ -3,6 +3,7 @@
 
 #include <cstdarg>
 #include <memory>
+#include <vector>
 
 size_t string_copy(char *dst, const char *src, size_t maxlen)
 {
@@ -71,4 +72,47 @@ int string_casencmp(const char *a, const char *b, size_t n)
         c2 = ch_tolower(*b++);
     } while (--n && c1 && c1 == c2);
     return c1 - c2;
+}
+
+std::string string_trim(const std::string &msg, const char ch)
+{
+    std::string message = msg;
+    while (message.length() > 0) {
+        if (message[0] != ch) {
+            break;
+        }
+        message.erase(0, 1);
+    }
+
+    while (message.length() > 0) {
+        if (message[message.length() - 1] != ch)
+            break;
+        message.erase(message.length() - 1, message.length());
+    }
+    return message;
+}
+
+std::vector<std::string> split_strings(const std::string &msg, std::string sep, bool trimBlank)
+{
+    std::vector<std::string> vecStrs;
+
+    int start = 0, pos = 0;
+    while ((pos = msg.find(sep, start)) != std::string::npos) {
+        if (start != pos) {
+            std::string str = msg.substr(start, pos - start);
+            if (trimBlank) {
+                str = string_trim(str, ' ');
+            }
+            vecStrs.push_back(str);
+        }
+        start = pos + sep.length();
+    }
+    if (start != msg.length()) {
+        std::string str = msg.substr(start);
+        if (trimBlank) {
+            str = string_trim(str, ' ');
+        }
+        vecStrs.push_back(str);
+    }
+    return vecStrs;
 }

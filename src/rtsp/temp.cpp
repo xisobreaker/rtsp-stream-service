@@ -1,21 +1,10 @@
-#include "rtsp.h"
-#include "base64.h"
-#include "memutils.h"
-#include "rtsputils.h"
-#include "strutils.h"
-#include "timeutils.h"
+#include "temp.h"
 
-#include <chrono>
-#include <cmath>
-#include <cstring>
-#include <iostream>
-#include <memory>
-#include <string>
+#ifndef MAX_RTSP_SIZE
+    #define MAX_RTSP_SIZE 4096
+#endif
 
-using namespace std;
-using namespace chrono;
-
-int rtsp_read_reply(int fd, RTSPMessageHeader *reply, unsigned char **content_ptr, const char *method)
+int rtsp_read_reply(int fd, RTSPMessage *reply, unsigned char **content_ptr, const char *method)
 {
     char line_buf[MAX_RTSP_SIZE] = {0};
     int  line_len = 0;

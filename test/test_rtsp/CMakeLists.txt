@@ -1,4 +1,4 @@
-project(test_sdp)
+project(test_rtsp)
 
 include_directories(${project_include_dirs})
 

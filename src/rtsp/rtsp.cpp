@@ -1,5 +1,6 @@
 #include "rtsp.h"
 #include "crypto.h"
+#include "http_auth.h"
 #include "memutils.h"
 #include "strutils.h"
 #include "timeutils.h"
@@ -13,7 +14,7 @@
 
 std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char *uri, const char *headers)
 {
-    std::shared_ptr<char> buf = make_shared_ptr<char>(MAX_RTSP_SIZE);
+    std::shared_ptr<char> buf(new char[MAX_RTSP_SIZE], std::default_delete<char[]>());
     snprintf(buf.get(), MAX_RTSP_SIZE, "%s %s RTSP/1.0\r\n", method, uri);
     if (headers) {
         string_lcat(buf.get(), headers, MAX_RTSP_SIZE);
@@ -27,18 +28,11 @@ std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char 
     }
     if (ctx->auth[0] != '\0') {
         std::string auth = http_auth_create_response(&ctx->auth_state, ctx->auth, uri, method);
-        if (auth.empty()) {
+        if (!auth.empty()) {
             string_lcat(buf.get(), auth.c_str(), MAX_RTSP_SIZE);
         }
     }
     string_lcat(buf.get(), "\r\n", MAX_RTSP_SIZE);
-
-    if (ctx->control_transport == RTSP_MODE_TUNNEL) {
-        int                   base64MaxSize = std::ceil(MAX_RTSP_SIZE / 3.0) * 4 + 1;
-        std::shared_ptr<char> base64Buf((char *)mem_malloc(base64MaxSize), MemDeleter());
-        base64_encode(buf.get(), strlen(buf.get()), base64Buf.get(), base64MaxSize);
-        buf = std::move(base64Buf);
-    }
     return std::string(buf.get());
 }
 
@@ -415,7 +409,7 @@ void rtsp_parse_range_npt(const char *ptr, int64_t *start, int64_t *end)
     }
 }
 
-void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, char *message, RTSPState *state, const char *method)
+void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *message, const char *method)
 {
     const char *ptr = message;
     if (string_istart(ptr, "Session:", &ptr)) {
@@ -442,29 +436,29 @@ void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, char *message, RTSPSt
     } else if (string_istart(ptr, "Location:", &ptr)) {
         ptr += strspn(ptr, SPACE_CHARS);
         string_copy(reply->location, ptr, sizeof(reply->location));
-    } else if (string_istart(ptr, "WWW-Authenticate:", &ptr) && state) {
+    } else if (string_istart(ptr, "WWW-Authenticate:", &ptr)) {
         ptr += strspn(ptr, SPACE_CHARS);
-        http_auth_handle_header(&state->auth_state, "WWW-Authenticate", ptr);
-    } else if (string_istart(ptr, "Authentication-Info:", &ptr) && state) {
+        http_auth_handle_header(&ctx->auth_state, "WWW-Authenticate", ptr);
+    } else if (string_istart(ptr, "Authentication-Info:", &ptr)) {
         ptr += strspn(ptr, SPACE_CHARS);
-        http_auth_handle_header(&state->auth_state, "Authentication-Info", ptr);
-    } else if (string_istart(ptr, "Content-Base:", &ptr) && state) {
+        http_auth_handle_header(&ctx->auth_state, "Authentication-Info", ptr);
+    } else if (string_istart(ptr, "Content-Base:", &ptr)) {
         ptr += strspn(ptr, SPACE_CHARS);
         if (method && !strcmp(method, "DESCRIBE")) {
-            string_copy(state->control_uri, ptr, sizeof(state->control_uri));
+            string_copy(ctx->base_uri, ptr, sizeof(ctx->base_uri));
         }
-    } else if (string_istart(ptr, "RTP-Info:", &ptr) && state) {
+    } else if (string_istart(ptr, "RTP-Info:", &ptr)) {
         ptr += strspn(ptr, SPACE_CHARS);
         if (method && !strcmp(method, "PLAY")) {
             // rtsp_parse_rtp_info(rt, p);
         }
-    } else if (string_istart(ptr, "Public:", &ptr) && state) {
+    } else if (string_istart(ptr, "Public:", &ptr)) {
         if (strstr(ptr, "GET_PARAMETER") && method && !strcmp(method, "OPTIONS")) {
-            state->get_parameter_supported = 1;
+            ctx->get_parameter_supported = 1;
         }
-    } else if (string_istart(ptr, "x-Accept-Dynamic-Rate:", &ptr) && state) {
+    } else if (string_istart(ptr, "x-Accept-Dynamic-Rate:", &ptr)) {
         ptr += strspn(ptr, SPACE_CHARS);
-        state->accept_dynamic_rate = atoi(ptr);
+        ctx->accept_dynamic_rate = atoi(ptr);
     } else if (string_istart(ptr, "Content-Type:", &ptr)) {
         ptr += strspn(ptr, SPACE_CHARS);
         string_copy(reply->content_type, ptr, sizeof(reply->content_type));
@@ -476,24 +470,74 @@ void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, char *message, RTSPSt
 
 void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *value)
 {
-    // if (!string_(key, "WWW-Authenticate") || !av_strcasecmp(key, "Proxy-Authenticate")) {
-    //     const char *p;
-    //     if (av_stristart(value, "Basic ", &p) && state->auth_type <= HTTP_AUTH_BASIC) {
-    //         state->auth_type = HTTP_AUTH_BASIC;
-    //         state->realm[0] = 0;
-    //         state->stale = 0;
-    //         ff_parse_key_value(p, (ff_parse_key_val_cb)handle_basic_params, state);
-    //     } else if (av_stristart(value, "Digest ", &p) && state->auth_type <= HTTP_AUTH_DIGEST) {
-    //         state->auth_type = HTTP_AUTH_DIGEST;
-    //         memset(&state->digest_params, 0, sizeof(DigestParams));
-    //         state->realm[0] = 0;
-    //         state->stale = 0;
-    //         ff_parse_key_value(p, (ff_parse_key_val_cb)handle_digest_params, state);
-    //         choose_qop(state->digest_params.qop, sizeof(state->digest_params.qop));
-    //         if (!av_strcasecmp(state->digest_params.stale, "true"))
-    //             state->stale = 1;
-    //     }
-    // } else if (!av_strcasecmp(key, "Authentication-Info")) {
-    //     ff_parse_key_value(value, (ff_parse_key_val_cb)handle_digest_update, state);
-    // }
+    if (!string_casecmp(key, "WWW-Authenticate") || !string_casecmp(key, "Proxy-Authenticate")) {
+        const char *p;
+        if (string_istart(value, "Basic ", &p) && state->auth_type <= HTTP_AUTH_BASIC) {
+            state->auth_type = HTTP_AUTH_BASIC;
+            auto vecStrs = split_strings(p, ",", true);
+            for (const auto &str : vecStrs) {
+                const char *ptr = nullptr;
+                if (string_istart(str.c_str(), "realm=", &ptr)) {
+                    std::string s = string_trim(ptr, '\"');
+                    strncpy(state->realm, s.c_str(), s.length());
+                }
+            }
+        } else if (string_istart(value, "Digest ", &p) && state->auth_type <= HTTP_AUTH_DIGEST) {
+            state->auth_type = HTTP_AUTH_DIGEST;
+            auto vecStrs = split_strings(p, ",", true);
+            for (const auto &str : vecStrs) {
+                const char *ptr = nullptr;
+                if (string_istart(str.c_str(), "realm=", &ptr)) {
+                    std::string s = string_trim(ptr, '\"');
+                    strncpy(state->realm, s.c_str(), s.length());
+                } else if (string_istart(str.c_str(), "nonce=", &ptr)) {
+                    std::string s = string_trim(ptr, '\"');
+                    strncpy(state->digest_params.nonce, s.c_str(), s.length());
+                }
+            }
+        }
+    } else if (string_casecmp(key, "Authentication-Info")) {
+        auto vecStrs = split_strings(value, ",", true);
+        for (const auto &str : vecStrs) {
+            const char *ptr = nullptr;
+            if (string_istart(str.c_str(), "nextnonce=", &ptr)) {
+                std::string s = string_trim(ptr, '\"');
+                strncpy(state->digest_params.nonce, s.c_str(), s.length());
+            }
+        }
+    }
+}
+
+int rtsp_read_reply(int fd, RTSPMessage *reply, unsigned char **content_ptr, const char *method)
+{
+    char line_buf[MAX_RTSP_SIZE] = {0};
+    int  line_len = 0;
+
+    for (;;) {
+        char  ch = '\0';
+        char *ptr = line_buf;
+        for (int i = 0; i < MAX_RTSP_SIZE; i++) {
+            int ret = ::recv(fd, &ch, 1, 0);
+            if (ret <= 0) {
+                return ret;
+            }
+
+            if (ch == '\n') {
+                break;
+            } else if (ch != '\r') {
+                *ptr++ = ch;
+            }
+        }
+        *ptr = '\0';
+
+        if (line_buf[0] == '\0') {
+            break;
+        }
+
+        if (line_len == 0) {
+        } else {
+        }
+        line_len++;
+    }
+    return 0;
 }

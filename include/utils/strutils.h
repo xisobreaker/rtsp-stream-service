@@ -2,10 +2,13 @@
 #define STRUTILS_H_H_H
 
 #include <cstring>
+#include <string>
+#include <vector>
 
-/**********************************************************
+/**
  * 字母转大写
- **********************************************************/
+ * @param c 要转换的字符
+ */
 static inline char ch_toupper(char c)
 {
     if (c >= 'a' && c <= 'z')
@@ -13,9 +16,10 @@ static inline char ch_toupper(char c)
     return c;
 }
 
-/**********************************************************
+/**
  * 字母转小写
- **********************************************************/
+ * @param c 要转换的字符
+ */
 static inline char ch_tolower(char c)
 {
     if (c >= 'A' && c <= 'Z')
@@ -48,6 +52,7 @@ bool string_istart(const char *str, const char *prefix, const char **ptr);
 
 /**********************************************************
  * 字符串比较（忽略大小写）
+ * @return 字符串相同则返回 0
  **********************************************************/
 int string_casecmp(const char *a, const char *b);
 
@@ -56,4 +61,13 @@ int string_casecmp(const char *a, const char *b);
  **********************************************************/
 int string_casencmp(const char *a, const char *b, size_t n);
 
+/**********************************************************
+ * 字符串修剪
+ **********************************************************/
+std::string string_trim(const std::string &msg, const char ch);
+
+/**********************************************************
+ * 字符串分割
+ **********************************************************/
+std::vector<std::string> split_strings(const std::string &msg, std::string sep, bool trimBlank = false);
 #endif

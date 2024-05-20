@@ -28,6 +28,12 @@ struct HTTPAuthState {
 };
 
 /**
+ * 生成 basic 加密串
+ * @param auth 用户密码信息(username:password)
+ */
+std::string make_basic_auth(const char *auth);
+
+/**
  * 生成 digest 加密串
  * @param state
  * @param username 用户名

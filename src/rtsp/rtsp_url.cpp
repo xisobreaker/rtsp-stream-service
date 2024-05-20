@@ -1,4 +1,5 @@
 #include "rtsp_url.h"
+#include "rtsp_def.h"
 #include "strutils.h"
 #include <cstdlib>
 
@@ -8,13 +9,12 @@ void split_video_url(RTSPUrlInfo *info, const char *url)
     if ((pos = strchr(url, ':'))) {
         string_copy(info->proto, url, (pos + 1 - url));
 
-        pos++; // skip ':'
-        if (*pos == '/') {
+        // skip ':'
+        pos++;
+        if (*pos == '/')
             pos++;
-        }
-        if (*pos == '/') {
+        if (*pos == '/')
             pos++;
-        }
     } else {
         string_copy(info->path, url, sizeof(info->path));
         return;
@@ -41,6 +41,7 @@ void split_video_url(RTSPUrlInfo *info, const char *url)
             info->port = atoi(col + 1);
         } else {
             string_copy(info->hostname, pos, lstr + 1 - pos);
+            info->port = RTSP_DEFAULT_PORT;
         }
     }
 }

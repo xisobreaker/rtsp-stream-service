@@ -10,12 +10,14 @@
  * RTSP Context。
  **********************************************************/
 typedef struct {
-    int                  seq;
-    char                *user_agent;
-    char                 session_id[512];
-    char                 auth[128];
-    HTTPAuthState        auth_state;
-    RTSPControlTransport control_transport;
+    int           seq;
+    char         *user_agent;
+    char          session_id[512];
+    char          auth[128];
+    HTTPAuthState auth_state;
+    char          base_uri[4096];
+    int           get_parameter_supported;
+    int           accept_dynamic_rate;
 } RTSPContext;
 
 /**********************************************************
@@ -25,10 +27,9 @@ typedef struct RTSPTransportField {
     /** interleave ids, 如果是TCP方式传输数据，每个 TCP/RTSP 数据包头以魔数 '$'，
      * stream 长度和 stream ID。 如果 stream ID 是在 interleaved_min-max 的
      * 范围内, 则此数据包属于该流。 */
-    int interleaved_min, interleaved_max;
-    int port_min, port_max; // UDP 多播端口范围
-    /** UDP 客户端端口; 本地计算机使用此范围内端口创建 UDP RTP（和RTCP）套接字，以接收 RTP/RTCP 数据。 */
-    int              client_port_min, client_port_max;
+    int              interleaved_min, interleaved_max;
+    int              port_min, port_max;               // UDP 多播端口范围
+    int              client_port_min, client_port_max; // UDP 客户端端口
     int              server_port_min, server_port_max; // UDP 单播端口范围
     int              ttl;
     int              mode_record;
@@ -44,11 +45,9 @@ typedef struct RTSPTransportField {
  **********************************************************/
 typedef struct {
     enum RTSPStatusCode status_code;            // rtsp 状态码
-    int                 nb_transports;          // transports 项数量
+    int                 seq;                    // RTSP 包序号
     int64_t             range_start, range_end; // 服务将传输的流的时间范围
-    int                 content_length;
-    RTSPTransportField  transports[RTSP_MAX_TRANSPORTS];
-    int                 seq;
+    int                 content_length;         // 内容长度
     char                session_id[512];
     int                 timeout;
     char                location[4096];
@@ -58,58 +57,53 @@ typedef struct {
     char                reason[256];
     char                content_type[64];
     char                stream_id[64];
+    int                 nb_transports; // transports 项数量
+    RTSPTransportField  transports[RTSP_MAX_TRANSPORTS];
 } RTSPMessage;
 
-/**********************************************************
- * RTSPState。
- **********************************************************/
-typedef struct RTSPState {
-    int                       nb_rtsp_streams;
-    struct RTSPStream       **rtsp_streams;
-    enum RTSPClientState      state;
-    int64_t                   seek_timestamp;
-    int                       seq;
-    char                      session_id[512];
-    int                       timeout;
-    int64_t                   last_cmd_time;
-    enum RTSPTransport        transport;
-    enum RTSPLowerTransport   lower_transport;
-    enum RTSPServerType       server_type;
-    char                      real_challenge[64];
-    char                      auth[128];
-    HTTPAuthState             auth_state;
-    char                      last_reply[2048];
-    void                     *cur_transport_priv;
-    int                       need_subscription;
-    char                      last_subscription[1024];
-    uint64_t                  asf_pb_pos;
-    char                      control_uri[4096];
-    struct MpegTSContext     *ts;
-    int                       recvbuf_pos;
-    int                       recvbuf_len;
-    enum RTSPControlTransport control_transport;
-    int                       nb_byes;
-    uint8_t                  *recvbuf;
-    int                       lower_transport_mask;
-    uint64_t                  packets;
-    struct pollfd            *p;
-    int                       max_p;
-    int                       get_parameter_supported;
-    int                       initial_pause;
-    int                       rtp_muxer_flags;
-    int                       accept_dynamic_rate;
-    int                       rtsp_flags;
-    int                       media_type_mask;
-    int                       rtp_port_min, rtp_port_max;
-    int                       initial_timeout;
-    int64_t                   stimeout;
-    int                       reordering_queue_size;
-    char                     *user_agent;
-    char                      default_lang[4];
-    int                       buffer_size;
-    int                       pkt_size;
-    char                     *localaddr;
-} RTSPState;
+// typedef struct RTSPState {
+//     int                     nb_rtsp_streams;
+//     struct RTSPStream     **rtsp_streams;
+//     enum RTSPClientState    state;
+//     int64_t                 seek_timestamp;
+//     int                     seq;
+//     char                    session_id[512];
+//     int                     timeout;
+//     int64_t                 last_cmd_time;
+//     enum RTSPTransport      transport;
+//     enum RTSPLowerTransport lower_transport;
+//     enum RTSPServerType     server_type;
+//     char                    real_challenge[64];
+//     char                    auth[128];
+//     HTTPAuthState           auth_state;
+//     char                    last_reply[2048];
+//     void                   *cur_transport_priv;
+//     int                     need_subscription;
+//     char                    last_subscription[1024];
+//     uint64_t                asf_pb_pos;
+//     struct MpegTSContext   *ts;
+//     int                     recvbuf_pos;
+//     int                     recvbuf_len;
+//     int                     nb_byes;
+//     uint8_t                *recvbuf;
+//     int                     lower_transport_mask;
+//     uint64_t                packets;
+//     struct pollfd          *p;
+//     int                     max_p;
+//     int                     initial_pause;
+//     int                     rtp_muxer_flags;
+//     int                     rtsp_flags;
+//     int                     media_type_mask;
+//     int                     rtp_port_min, rtp_port_max;
+//     int                     initial_timeout;
+//     int64_t                 stimeout;
+//     int                     reordering_queue_size;
+//     char                   *user_agent;
+//     char                    default_lang[4];
+//     int                     buffer_size;
+//     int                     pkt_size;
+//     char                   *localaddr;
+// } RTSPState;
 
 /**
  * 命令数据编码
@@ -153,7 +147,18 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const char *p);
  * @param rt
  * @param method
  */
-void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, char *message, RTSPState *state, const char *method);
+void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *message, const char *method);
 
-// Authorization 数据处理
+/**
+ * Authorization 数据处理
+ */
 void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *value);
+
+/**
+ * 接收应答
+ * @param fd socker 套接字
+ * @param reply
+ * @param content_ptr
+ * @param method
+ */
+int rtsp_read_reply(int fd, RTSPMessage *reply, unsigned char **content_ptr, const char *method);
