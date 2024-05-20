@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include <string>
 
 /**********************************************************
  * 身份验证类型，由弱到强。
@@ -37,9 +37,6 @@ struct HTTPAuthState {
  */
 std::string make_digest_auth(HTTPAuthState *state, const char *username, const char *password, const char *uri, const char *method);
 
-// Authorization 数据处理
-void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *value);
-
 /**
  * 返回生成的 Authorization 数据
  * @param state
@@ -47,4 +44,4 @@ void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *
  * @param uri
  * @param method
  */
-std::shared_ptr<char> http_auth_create_response(HTTPAuthState *state, const char *auth, const char *uri, const char *method);
+std::string http_auth_create_response(HTTPAuthState *state, const char *auth, const char *uri, const char *method);

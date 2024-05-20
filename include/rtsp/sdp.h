@@ -1,5 +1,4 @@
-#ifndef _SDP_CODEC_H_H_H
-#define _SDP_CODEC_H_H_H
+#pragma once
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -68,7 +67,10 @@ struct sdp_media {
     int                   attributes_count;
 };
 
-struct sdp_payload {
+/**********************************************************
+ * SDP 负载数据。
+ **********************************************************/
+struct SDPPayload {
     char                            *_payload;
     unsigned char                    proto_version;
     struct sdp_origin                origin;
@@ -93,11 +95,9 @@ struct sdp_payload {
     int                              medias_count;
 };
 
-char               *load_next_entry(char *p, char *key, char **value);
-char               *split_values(char *p, char sep, const char *fmt, ...);
-struct sdp_payload *sdp_parser(const char *payload);
-std::string         str_format(const char *fmt, ...);
-std::string         sdp_format(const struct sdp_payload *sdp);
-void                sdp_destroy(struct sdp_payload *sdp);
-
-#endif
+char              *load_next_entry(char *p, char *key, char **value);
+char              *split_values(char *p, char sep, const char *fmt, ...);
+struct SDPPayload *sdp_parser(const char *payload);
+std::string        str_format(const char *fmt, ...);
+std::string        sdp_format(const struct SDPPayload *sdp);
+void               sdp_destroy(struct SDPPayload *sdp);

@@ -4,18 +4,6 @@
 #include <cstdarg>
 #include <memory>
 
-char **string_split(const char *msg, const char *sep, int &count)
-{
-    // int pos = 0, idx = 0;
-    // while ((idx = msg.find(sep, pos)) != std::string::npos) {
-    //     string str = msg.substr(pos, idx - pos);
-    //     strQueue.push(str);
-    //     pos = idx + sep.length();
-    // }
-    // return strQueue;
-    return nullptr;
-}
-
 size_t string_copy(char *dst, const char *src, size_t maxlen)
 {
     size_t len = 0;

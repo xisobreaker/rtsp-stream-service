@@ -1,5 +1,4 @@
-#ifndef _RTP_DECODE_H_H_H
-#define _RTP_DECODE_H_H_H
+#pragma once
 
 typedef enum {
     RTCP_SR = 200,
@@ -75,5 +74,3 @@ rtp_nalu_hdr_t          parse_rtp_h264_format(unsigned char *buffer);
 
 int parse_nalu_stap(rtp_h264_nalu_t *nalu, unsigned char *buffer);
 int parse_nalu(rtp_h264_nalu_t *nalu, unsigned char *buffer, int length);
-
-#endif

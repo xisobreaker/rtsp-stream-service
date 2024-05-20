@@ -8,9 +8,8 @@
  **********************************************************/
 static inline char ch_toupper(char c)
 {
-    if (c >= 'a' && c <= 'z') {
+    if (c >= 'a' && c <= 'z')
         c ^= 0x20;
-    }
     return c;
 }
 
@@ -19,15 +18,17 @@ static inline char ch_toupper(char c)
  **********************************************************/
 static inline char ch_tolower(char c)
 {
-    if (c >= 'A' && c <= 'Z') {
+    if (c >= 'A' && c <= 'Z')
         c ^= 0x20;
-    }
     return c;
 }
 
-/**********************************************************
+/**
  * 字符串安全拷贝，返回字符串拷贝长度
- **********************************************************/
+ * @param dst
+ * @param maxlen (aka unsigned long)
+ * @param fmt
+ */
 size_t string_copy(char *dst, const char *src, size_t maxlen);
 
 /**********************************************************

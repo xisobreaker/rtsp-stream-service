@@ -1,4 +1,4 @@
-#include "h264dec.h"
+#include "h264.h"
 #include <cmath>
 
 int U(uint8_t *pBuf, uint32_t &nStartBit, uint32_t nBitSize)

@@ -1,14 +1,14 @@
-#include "sdp-codec.h"
+#include "sdp.h"
 
 char *load_next_entry(char *p, char *key, char **value)
 {
-    char *endl = NULL;
-    if (!p) {
-        return NULL;
-    }
-    if ((endl = strstr(p, "\r\n")) == NULL) {
+    if (!p)
+        return nullptr;
+
+    char *endl = strstr(p, "\r\n");
+    if (endl == nullptr)
         endl = strchr(p, '\n');
-    }
+
     if (endl) {
         while (*endl == '\r' || *endl == '\n') {
             *endl++ = '\0';
@@ -26,8 +26,8 @@ char *load_next_entry(char *p, char *key, char **value)
 
 fail:
     *key = 0;
-    *value = NULL;
-    return NULL;
+    *value = nullptr;
+    return nullptr;
 }
 
 char *split_values(char *p, char sep, const char *fmt, ...)
@@ -36,9 +36,9 @@ char *split_values(char *p, char sep, const char *fmt, ...)
     va_start(va, fmt);
     char *temp = p;
 
-    while (*p == sep) {
+    while (*p == sep)
         p++;
-    }
+
     while (*fmt) {
         char         **s, *tmp;
         int           *i;
@@ -127,12 +127,12 @@ char *split_values(char *p, char sep, const char *fmt, ...)
         }                                                                         \
     } while (0)
 
-struct sdp_payload *sdp_parser(const char *payload)
+struct SDPPayload *sdp_parser(const char *payload)
 {
-    struct sdp_payload *sdp = NULL;
-    char               *p, key, *value;
+    struct SDPPayload *sdp = NULL;
+    char              *p, key, *value;
 
-    sdp = (struct sdp_payload *)calloc(1, sizeof(struct sdp_payload));
+    sdp = (struct SDPPayload *)calloc(1, sizeof(struct SDPPayload));
     if (!sdp) {
         goto fail;
     }
@@ -392,7 +392,7 @@ std::string str_format(const char *fmt, ...)
     return str_fmt;
 }
 
-std::string sdp_format(const struct sdp_payload *sdp)
+std::string sdp_format(const struct SDPPayload *sdp)
 {
     if (sdp == NULL) {
         return std::string();
@@ -480,7 +480,7 @@ std::string sdp_format(const struct sdp_payload *sdp)
     return sdp_data;
 }
 
-void sdp_destroy(struct sdp_payload *sdp)
+void sdp_destroy(struct SDPPayload *sdp)
 {
     if (sdp) {
         free(sdp->_payload);

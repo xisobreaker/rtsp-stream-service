@@ -13,6 +13,7 @@ aux_source_directory(. DIR_SOURCES)
 add_executable(${PROJECT_NAME} ${DIR_SOURCES})
 target_link_libraries(${PROJECT_NAME} glog::glog)
 
+include(CTest)
 include(GoogleTest)
 if(BUILD_TESTING)
     message(STATUS "Build testing...")

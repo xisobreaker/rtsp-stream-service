@@ -1,5 +1,5 @@
-#include "h264dec.h"
-#include "rtpproto.h"
+#include "rtp.h"
+#include "h264.h"
 
 #include <cstring>
 #include <list>
