@@ -117,13 +117,44 @@ std::vector<std::string> string_split(const std::string &msg, std::string sep, b
     return vecStrs;
 }
 
-std::string string_cut_until_char(std::string &msg, const char ch)
+std::string string_cut_until_char(std::string &msg, std::string seps, bool keepSep)
 {
     std::string message = std::move(msg);
-    int         pos = message.find(ch);
-    if (pos != std::string::npos) {
-        msg = message.substr(pos + 1);
-        return message.substr(0, pos);
+    for (int i = 0; i < message.length(); i++) {
+        if (seps.find(message.at(i)) != std::string::npos) {
+            if (keepSep) {
+                msg = message.substr(i);
+            } else {
+                msg = message.substr(i + 1);
+            }
+            return message.substr(0, i);
+        }
     }
     return message;
+}
+
+bool string_starts_with(const std::string &str, std::string start)
+{
+    auto startLen = start.size();
+    if (str.size() >= startLen) {
+        std::string temp = str.substr(0, startLen);
+        return temp.compare(start) == 0;
+    }
+    return false;
+}
+
+bool string_start_and_cut(std::string &msg, std::string start, bool skipSpace)
+{
+    if (!string_starts_with(msg, start)) {
+        return false;
+    }
+
+    int startPos = start.length();
+    if (skipSpace) {
+        while (msg.at(startPos) == ' ') {
+            startPos++;
+        }
+    }
+    msg = msg.substr(startPos, msg.length());
+    return true;
 }

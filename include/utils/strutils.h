@@ -79,8 +79,25 @@ std::vector<std::string> string_split(const std::string &msg, std::string sep, b
 
 /**
  * 截取字符串，直到分隔符
- * @param msg
+ * @param msg 原始字符串
+ * @param seps 分隔符（支持多个）
+ * @param keepSep 是否保留分割符
  * @return 截取的字符
  */
-std::string string_cut_until_char(std::string &msg, const char ch);
+std::string string_cut_until_char(std::string &msg, std::string seps, bool keepSep = false);
+
+/**
+ * 判断字符串开头字符
+ * @param str 原始字符串
+ * @param start 要比较的起始字符串
+ */
+bool string_starts_with(const std::string &str, std::string start);
+
+/**
+ * 判断字符串开头字符, 如果为真，裁剪掉开始字符
+ * @param str 原始字符串
+ * @param start 要比较的起始字符串
+ * @param skipSpace 跳过空格
+ */
+bool string_start_and_cut(std::string &msg, std::string start, bool skipSpace = true);
 #endif

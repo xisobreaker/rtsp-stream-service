@@ -23,13 +23,22 @@ TEST(TEST_RTSP_PARSE, DIGEST_AUTH)
     const char *session = "Session: 2936719851115;timeout=60\r\n";
     rtsp_parse_line(&ctx, &reply, session, "SETUP");
     EXPECT_STREQ(reply.session_id, "2936719851115");
+    EXPECT_EQ(reply.timeout, 60);
 
     const char *contentLen = "Content-Length: 465\r\n";
     rtsp_parse_line(&ctx, &reply, contentLen, "DESCRIBE");
     EXPECT_EQ(reply.content_length, 465);
 
-    const char *transport = "Transport: RTP/AVP;unicast;client_port=18292-18293\r\n";
+    const char *transport = "Transport: RTP/AVP/TCP;unicast;client_port=18292-18293\r\n"
+                            "RTP/AVP;unicast;client_port=34234-34235;server_port=20908-20909;ssrc=3E0C69CB\r\n";
     rtsp_parse_line(&ctx, &reply, transport, "DESCRIBE");
+    EXPECT_EQ(reply.nb_transports, 2);
+    EXPECT_EQ(reply.transports[0].client_port_min, 18292);
+    EXPECT_EQ(reply.transports[0].client_port_max, 18293);
+    EXPECT_EQ(reply.transports[1].client_port_min, 34234);
+    EXPECT_EQ(reply.transports[1].client_port_max, 34235);
+    EXPECT_EQ(reply.transports[1].server_port_min, 20908);
+    EXPECT_EQ(reply.transports[1].server_port_max, 20909);
 
     const char *range = "Range: npt=3.51-324.39\r\n";
     rtsp_parse_line(&ctx, &reply, range, "PLAY");

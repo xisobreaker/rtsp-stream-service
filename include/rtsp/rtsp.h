@@ -51,7 +51,6 @@ typedef struct {
     char                session_id[512];
     int                 timeout;
     char                location[4096];
-    char                real_challenge[64];
     char                server[64];
     int                 notice;
     char                reason[256];
@@ -118,9 +117,9 @@ std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char 
  * 获取区间数据(如: 10087-10088)
  * @param min_ptr 左值
  * @param max_ptr 右值
- * @param pp
+ * @param msg
  */
-void rtsp_parse_range(int *min_ptr, int *max_ptr, const char **pp);
+void rtsp_parse_range(int *min_ptr, int *max_ptr, const std::string &msg);
 
 /**
  * 获取字符串，直到分割符
@@ -141,7 +140,7 @@ void get_str_skip_slash(char *buf, int buf_size, const char *sep, const char **p
  * @param ctx
  * @param reply
  */
-void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const char *p);
+void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const std::string &msg);
 
 /**
  * 解析行数据
@@ -151,12 +150,12 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const char *p);
  * @param rt
  * @param method
  */
-void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *message, const char *method);
+void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *msg, const char *method);
 
 /**
  * Authorization 数据处理
  */
-void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *value);
+void http_auth_handle_header(HTTPAuthState *state, const std::string &key, const std::string &value);
 
 /**
  * 接收应答

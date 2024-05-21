@@ -2,11 +2,14 @@
 #include "crypto.h"
 #include "http_auth.h"
 #include "memutils.h"
+#include "rtsp_def.h"
 #include "strutils.h"
 #include "timeutils.h"
 #include <cmath>
+#include <glog/logging.h>
 #include <memory>
 #include <netdb.h>
+#include <string>
 
 #ifndef MAX_RTSP_SIZE
     #define MAX_RTSP_SIZE 4096
@@ -36,22 +39,16 @@ std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char 
     return std::string(buf.get());
 }
 
-void rtsp_parse_range(int *min_ptr, int *max_ptr, const char **pp)
+void rtsp_parse_range(int *min_ptr, int *max_ptr, const std::string &msg)
 {
-    const char *q = *pp;
-    char       *p;
-    q += strspn(q, SPACE_CHARS);
-    int v = strtol(q, &p, 10);
-    if (*p == '-') {
-        p++;
-        *min_ptr = v;
-        v = strtol(p, &p, 10);
-        *max_ptr = v;
+    auto vec = string_split(msg, "-");
+    if (vec.size() == 2) {
+        *min_ptr = std::stoi(vec[0]);
+        *max_ptr = std::stoi(vec[1]);
     } else {
-        *min_ptr = v;
-        *max_ptr = v;
+        *min_ptr = std::stoi(vec[0]);
+        *max_ptr = std::stoi(vec[0]);
     }
-    *pp = p;
 }
 
 int get_sockaddr(const char *buf, struct sockaddr_storage *sock)
@@ -98,122 +95,65 @@ void get_str_skip_slash(char *buf, int buf_size, const char *sep, const char **p
     get_str_until_chars(buf, buf_size, sep, pp);
 }
 
-void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const char *p)
+void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const std::string &msg)
 {
-    char transport_protocol[16] = {0};
-    char profile[16] = {0};
-    char lower_transport[16] = {0};
-    char parameter[16] = {0};
-    char buf[256] = {0};
-
     reply->nb_transports = 0;
+    std::string lower_transport = "UDP";
 
-    for (;;) {
-        p += strspn(p, SPACE_CHARS);
-        if (*p == '\0') {
+    auto vecTransports = string_split(msg, "\r\n");
+    for (int i = 0; i < vecTransports.size(); i++) {
+        if (reply->nb_transports >= RTSP_MAX_TRANSPORTS)
             break;
-        }
 
-        RTSPTransportField *transField = &reply->transports[reply->nb_transports];
-        get_str_until_chars(transport_protocol, sizeof(transport_protocol), "/", &p);
-        if (string_casecmp(transport_protocol, "rtp") == 0) {
-            get_str_skip_slash(profile, sizeof(profile), "/;,", &p);
-            if (*p == '/') {
-                get_str_skip_slash(lower_transport, sizeof(lower_transport), ";,", &p);
+        RTSPTransportField *transport = &reply->transports[reply->nb_transports];
+        std::string         transport_protocol = string_cut_until_char(vecTransports[i], "/");
+        if (transport_protocol == "RTP") {
+            std::string profile = string_cut_until_char(vecTransports[i], "/;,", true);
+            if (vecTransports[i].at(0) == '/') {
+                vecTransports[i] = vecTransports[i].substr(1, vecTransports[i].length());
+                lower_transport = string_cut_until_char(vecTransports[i], ";,");
+            } else if (vecTransports[i].at(0) == ';' || vecTransports[i].at(0) == ',') {
+                vecTransports[i] = vecTransports[i].substr(1, vecTransports[i].length());
             }
-            transField->transport = RTSP_TRANSPORT_RTP;
-        } else if (!string_casecmp(transport_protocol, "x-pn-tng") || !string_casecmp(transport_protocol, "x-real-rdt")) {
-            get_str_skip_slash(lower_transport, sizeof(lower_transport), "/;,", &p);
-            transField->transport = RTSP_TRANSPORT_RDT;
-        } else if (!string_casecmp(transport_protocol, "raw")) {
-            get_str_skip_slash(profile, sizeof(profile), "/;,", &p);
-            if (*p == '/') {
-                get_str_skip_slash(lower_transport, sizeof(lower_transport), ";,", &p);
-            }
-            transField->transport = RTSP_TRANSPORT_RAW;
+            transport->transport = RTSP_TRANSPORT_RTP;
         } else {
-            break;
+            LOG(WARNING) << "unknown transport protocol: " << transport_protocol;
         }
 
-        if (!string_casecmp(lower_transport, "TCP")) {
-            transField->lower_transport = RTSP_LOWER_TRANSPORT_TCP;
+        if (lower_transport == "TCP") {
+            transport->lower_transport = RTSP_LOWER_TRANSPORT_TCP;
         } else {
-            transField->lower_transport = RTSP_LOWER_TRANSPORT_UDP;
+            transport->lower_transport = RTSP_LOWER_TRANSPORT_UDP;
         }
 
-        if (*p == ';') {
-            p++;
-        }
-
-        while (*p != '\0' && *p != ',') {
-            get_str_skip_slash(parameter, sizeof(parameter), "=;,", &p);
-            if (!strcmp(parameter, "port")) {
-                if (*p == '=') {
-                    p++;
-                    rtsp_parse_range(&transField->port_min, &transField->port_max, &p);
+        auto vecStrs = string_split(vecTransports[i], ";");
+        for (auto &field : vecStrs) {
+            std::string str = string_cut_until_char(field, "=");
+            if (str == "multicast") {
+                if (transport->lower_transport == RTSP_LOWER_TRANSPORT_UDP) {
+                    transport->lower_transport = RTSP_LOWER_TRANSPORT_UDP_MULTICAST;
                 }
-            } else if (!strcmp(parameter, "client_port")) {
-                if (*p == '=') {
-                    p++;
-                    rtsp_parse_range(&transField->client_port_min, &transField->client_port_max, &p);
-                }
-            } else if (!strcmp(parameter, "server_port")) {
-                if (*p == '=') {
-                    p++;
-                    rtsp_parse_range(&transField->server_port_min, &transField->server_port_max, &p);
-                }
-            } else if (!strcmp(parameter, "interleaved")) {
-                if (*p == '=') {
-                    p++;
-                    rtsp_parse_range(&transField->interleaved_min, &transField->interleaved_max, &p);
-                }
-            } else if (!strcmp(parameter, "multicast")) {
-                if (transField->lower_transport == RTSP_LOWER_TRANSPORT_UDP)
-                    transField->lower_transport = RTSP_LOWER_TRANSPORT_UDP_MULTICAST;
-            } else if (!strcmp(parameter, "ttl")) {
-                if (*p == '=') {
-                    char *end;
-                    p++;
-                    transField->ttl = strtol(p, &end, 10);
-                    p = end;
-                }
-            } else if (!strcmp(parameter, "destination")) {
-                if (*p == '=') {
-                    p++;
-                    get_str_skip_slash(buf, sizeof(buf), ";,", &p);
-                    get_sockaddr(buf, &transField->destination);
-                }
-            } else if (!strcmp(parameter, "source")) {
-                if (*p == '=') {
-                    p++;
-                    get_str_skip_slash(buf, sizeof(buf), ";,", &p);
-                    string_copy(transField->source, buf, sizeof(transField->source));
-                }
-            } else if (!strcmp(parameter, "mode")) {
-                if (*p == '=') {
-                    p++;
-                    get_str_skip_slash(buf, sizeof(buf), ";, ", &p);
-                    if (!strcmp(buf, "record") || !strcmp(buf, "receive")) {
-                        transField->mode_record = 1;
-                    }
+            } else if (str == "port") {
+                rtsp_parse_range(&transport->port_min, &transport->port_max, field);
+            } else if (str == "client_port") {
+                rtsp_parse_range(&transport->client_port_min, &transport->client_port_max, field);
+            } else if (str == "server_port") {
+                rtsp_parse_range(&transport->server_port_min, &transport->server_port_max, field);
+            } else if (str == "interleaved") {
+                rtsp_parse_range(&transport->interleaved_min, &transport->interleaved_max, field);
+            } else if (str == "ttl") {
+                transport->ttl = std::stoi(field);
+            } else if (str == "destination") {
+                get_sockaddr(field.c_str(), &transport->destination);
+            } else if (str == "source") {
+                snprintf(transport->source, sizeof(transport->source), "%s", field.c_str());
+            } else if (str == "mode") {
+                if (field == "record" || field == "receive") {
+                    transport->mode_record = 1;
                 }
             }
-
-            while (*p != ';' && *p != '\0' && *p != ',') {
-                p++;
-            }
-            if (*p == ';') {
-                p++;
-            }
         }
-        if (*p == ',') {
-            p++;
-        }
-
         reply->nb_transports++;
-        if (reply->nb_transports >= RTSP_MAX_TRANSPORTS) {
-            break;
-        }
     }
 }
 
@@ -410,72 +350,61 @@ void rtsp_parse_range_npt(const char *ptr, int64_t *start, int64_t *end)
     }
 }
 
-void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *message, const char *method)
+void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *msg, const char *method)
 {
-    const char *ptr = message;
-    if (string_istart(ptr, "Session:", &ptr)) {
-        get_str_until_chars(reply->session_id, sizeof(reply->session_id), ";", &ptr);
-        if (string_istart(ptr, ";timeout", &ptr)) {
-            reply->timeout = strtol(ptr, NULL, 10);
+    std::string message = msg;
+    if (string_start_and_cut(message, "Authentication-Info:")) {
+        http_auth_handle_header(&ctx->auth_state, "Authentication-Info", message);
+    } else if (string_start_and_cut(message, "Cache-Control:")) {
+        LOG(WARNING) << "Cache-Control: " << message;
+    } else if (string_start_and_cut(message, "Content-Base:")) {
+        snprintf(ctx->base_uri, sizeof(ctx->base_uri), "%s", message.c_str());
+    } else if (string_start_and_cut(message, "Content-Length:")) {
+        reply->content_length = std::stoi(message);
+    } else if (string_start_and_cut(message, "Content-Type:")) {
+        snprintf(reply->content_type, sizeof(reply->content_type), "%s", message.c_str());
+    } else if (string_start_and_cut(message, "CSeq:")) {
+        reply->seq = std::stoi(message);
+    } else if (string_start_and_cut(message, "Location:")) {
+        snprintf(reply->location, sizeof(reply->location), "%s", message.c_str());
+    } else if (string_start_and_cut(message, "Public:")) {
+        if (message.find("GET_PARAMETER") != std::string::npos && !strcmp(method, "OPTIONS")) {
+            ctx->get_parameter_supported = 1;
         }
-    } else if (string_istart(ptr, "Content-Length:", &ptr)) {
-        reply->content_length = strtol(ptr, NULL, 10);
-    } else if (string_istart(ptr, "Transport:", &ptr)) {
-        rtsp_parse_transport(ctx, reply, ptr);
-    } else if (string_istart(ptr, "CSeq:", &ptr)) {
-        reply->seq = strtol(ptr, NULL, 10);
-    } else if (string_istart(ptr, "Range:", &ptr)) {
-        rtsp_parse_range_npt(ptr, &reply->range_start, &reply->range_end);
-    } else if (string_istart(ptr, "RealChallenge1:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        string_copy(reply->real_challenge, ptr, sizeof(reply->real_challenge));
-    } else if (string_istart(ptr, "Server:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        string_copy(reply->server, ptr, sizeof(reply->server));
-    } else if (string_istart(ptr, "Notice:", &ptr) || string_istart(ptr, "X-Notice:", &ptr)) {
-        reply->notice = strtol(ptr, NULL, 10);
-    } else if (string_istart(ptr, "Location:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        string_copy(reply->location, ptr, sizeof(reply->location));
-    } else if (string_istart(ptr, "WWW-Authenticate:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        http_auth_handle_header(&ctx->auth_state, "WWW-Authenticate", ptr);
-    } else if (string_istart(ptr, "Authentication-Info:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        http_auth_handle_header(&ctx->auth_state, "Authentication-Info", ptr);
-    } else if (string_istart(ptr, "Content-Base:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        if (method && !strcmp(method, "DESCRIBE")) {
-            string_copy(ctx->base_uri, ptr, sizeof(ctx->base_uri));
-        }
-    } else if (string_istart(ptr, "RTP-Info:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
+    } else if (string_start_and_cut(message, "Range:")) {
+        // rtsp_parse_range_npt(ptr, &reply->range_start, &reply->range_end);
+    } else if (string_start_and_cut(message, "RTP-Info:")) {
         if (method && !strcmp(method, "PLAY")) {
             // rtsp_parse_rtp_info(rt, p);
         }
-    } else if (string_istart(ptr, "Public:", &ptr)) {
-        if (strstr(ptr, "GET_PARAMETER") && method && !strcmp(method, "OPTIONS")) {
-            ctx->get_parameter_supported = 1;
+    } else if (string_start_and_cut(message, "Session:")) {
+        std::string session_id = string_cut_until_char(message, ";");
+        snprintf(reply->session_id, sizeof(reply->session_id), "%s", session_id.c_str());
+        if (string_start_and_cut(message, "timeout=")) {
+            reply->timeout = std::stoi(message);
         }
-    } else if (string_istart(ptr, "x-Accept-Dynamic-Rate:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        ctx->accept_dynamic_rate = atoi(ptr);
-    } else if (string_istart(ptr, "Content-Type:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        string_copy(reply->content_type, ptr, sizeof(reply->content_type));
-    } else if (string_istart(ptr, "com.ses.streamID:", &ptr)) {
-        ptr += strspn(ptr, SPACE_CHARS);
-        string_copy(reply->stream_id, ptr, sizeof(reply->stream_id));
+    } else if (string_start_and_cut(message, "Server:")) {
+        snprintf(reply->server, sizeof(reply->server), "%s", message.c_str());
+    } else if (string_start_and_cut(message, "Transport:")) {
+        rtsp_parse_transport(ctx, reply, message);
+    } else if (string_start_and_cut(message, "Notice:") || string_start_and_cut(message, "X-Notice:")) {
+        reply->notice = std::stoi(message);
+    } else if (string_start_and_cut(message, "WWW-Authenticate:")) {
+        http_auth_handle_header(&ctx->auth_state, "WWW-Authenticate", message);
+    } else if (string_start_and_cut(message, "x-Accept-Dynamic-Rate:")) {
+        ctx->accept_dynamic_rate = std::stoi(message);
+    } else {
+        LOG(WARNING) << "unknown header: " << message;
     }
 }
 
-void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *value)
+void http_auth_handle_header(HTTPAuthState *state, const std::string &key, const std::string &value)
 {
-    if (!string_casecmp(key, "WWW-Authenticate") || !string_casecmp(key, "Proxy-Authenticate")) {
-        const char *p;
-        if (string_istart(value, "Basic ", &p) && state->auth_type <= HTTP_AUTH_BASIC) {
+    if (key == "WWW-Authenticate" || key == "Proxy-Authenticate") {
+        std::string message = value;
+        if (string_start_and_cut(message, "Basic ") && state->auth_type <= HTTP_AUTH_BASIC) {
             state->auth_type = HTTP_AUTH_BASIC;
-            auto vecStrs = string_split(p, ",", true);
+            auto vecStrs = string_split(message, ",", true);
             for (const auto &str : vecStrs) {
                 const char *ptr = nullptr;
                 if (string_istart(str.c_str(), "realm=", &ptr)) {
@@ -483,26 +412,24 @@ void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *
                     strncpy(state->realm, s.c_str(), s.length());
                 }
             }
-        } else if (string_istart(value, "Digest ", &p) && state->auth_type <= HTTP_AUTH_DIGEST) {
+        } else if (string_start_and_cut(message, "Digest ") && state->auth_type <= HTTP_AUTH_DIGEST) {
             state->auth_type = HTTP_AUTH_DIGEST;
-            auto vecStrs = string_split(p, ",", true);
-            for (const auto &str : vecStrs) {
-                const char *ptr = nullptr;
-                if (string_istart(str.c_str(), "realm=", &ptr)) {
-                    std::string s = string_trim(ptr, '\"');
+            auto vecStrs = string_split(message, ",", true);
+            for (auto &str : vecStrs) {
+                if (string_start_and_cut(str, "realm=")) {
+                    std::string s = string_trim(str, '\"');
                     strncpy(state->realm, s.c_str(), s.length());
-                } else if (string_istart(str.c_str(), "nonce=", &ptr)) {
-                    std::string s = string_trim(ptr, '\"');
+                } else if (string_start_and_cut(str, "nonce=")) {
+                    std::string s = string_trim(str, '\"');
                     strncpy(state->digest_params.nonce, s.c_str(), s.length());
                 }
             }
         }
-    } else if (string_casecmp(key, "Authentication-Info")) {
+    } else if (key == "Authentication-Info") {
         auto vecStrs = string_split(value, ",", true);
-        for (const auto &str : vecStrs) {
-            const char *ptr = nullptr;
-            if (string_istart(str.c_str(), "nextnonce=", &ptr)) {
-                std::string s = string_trim(ptr, '\"');
+        for (auto &str : vecStrs) {
+            if (string_start_and_cut(str, "nextnonce=")) {
+                std::string s = string_trim(str, '\"');
                 strncpy(state->digest_params.nonce, s.c_str(), s.length());
             }
         }
