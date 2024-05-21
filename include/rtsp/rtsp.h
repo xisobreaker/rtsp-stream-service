@@ -53,10 +53,8 @@ typedef struct {
     char                location[4096];
     char                server[64];
     int                 notice;
-    char                reason[256];
     char                content_type[64];
-    char                stream_id[64];
-    int                 nb_transports; // transports 项数量
+    int                 nb_transports; // transports 数量
     RTSPTransportField  transports[RTSP_MAX_TRANSPORTS];
 } RTSPMessage;
 
