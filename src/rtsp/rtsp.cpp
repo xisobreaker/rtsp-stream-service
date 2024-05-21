@@ -75,7 +75,9 @@ void get_str_until_chars(char *buf, int buf_size, const char *sep, const char **
     const char *p = *pp;
     char       *q = buf;
 
+    // 跳过 SPACE_CHARS
     p += strspn(p, SPACE_CHARS);
+    // strchr  函数返回指向在 sep 中首次出现 *p 字符的指针，未找到时返回 null
     while (!strchr(sep, *p) && (*p != '\0')) {
         if ((q - buf) < buf_size - 1) {
             *q++ = *p;
@@ -98,12 +100,11 @@ void get_str_skip_slash(char *buf, int buf_size, const char *sep, const char **p
 
 void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const char *p)
 {
-    char                transport_protocol[16] = {0};
-    char                profile[16] = {0};
-    char                lower_transport[16] = {0};
-    char                parameter[16] = {0};
-    RTSPTransportField *transField;
-    char                buf[256] = {0};
+    char transport_protocol[16] = {0};
+    char profile[16] = {0};
+    char lower_transport[16] = {0};
+    char parameter[16] = {0};
+    char buf[256] = {0};
 
     reply->nb_transports = 0;
 
@@ -113,7 +114,7 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const char *p)
             break;
         }
 
-        transField = &reply->transports[reply->nb_transports];
+        RTSPTransportField *transField = &reply->transports[reply->nb_transports];
         get_str_until_chars(transport_protocol, sizeof(transport_protocol), "/", &p);
         if (string_casecmp(transport_protocol, "rtp") == 0) {
             get_str_skip_slash(profile, sizeof(profile), "/;,", &p);
@@ -474,7 +475,7 @@ void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *
         const char *p;
         if (string_istart(value, "Basic ", &p) && state->auth_type <= HTTP_AUTH_BASIC) {
             state->auth_type = HTTP_AUTH_BASIC;
-            auto vecStrs = split_strings(p, ",", true);
+            auto vecStrs = string_split(p, ",", true);
             for (const auto &str : vecStrs) {
                 const char *ptr = nullptr;
                 if (string_istart(str.c_str(), "realm=", &ptr)) {
@@ -484,7 +485,7 @@ void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *
             }
         } else if (string_istart(value, "Digest ", &p) && state->auth_type <= HTTP_AUTH_DIGEST) {
             state->auth_type = HTTP_AUTH_DIGEST;
-            auto vecStrs = split_strings(p, ",", true);
+            auto vecStrs = string_split(p, ",", true);
             for (const auto &str : vecStrs) {
                 const char *ptr = nullptr;
                 if (string_istart(str.c_str(), "realm=", &ptr)) {
@@ -497,7 +498,7 @@ void http_auth_handle_header(HTTPAuthState *state, const char *key, const char *
             }
         }
     } else if (string_casecmp(key, "Authentication-Info")) {
-        auto vecStrs = split_strings(value, ",", true);
+        auto vecStrs = string_split(value, ",", true);
         for (const auto &str : vecStrs) {
             const char *ptr = nullptr;
             if (string_istart(str.c_str(), "nextnonce=", &ptr)) {

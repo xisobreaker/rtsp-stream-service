@@ -92,7 +92,7 @@ std::string string_trim(const std::string &msg, const char ch)
     return message;
 }
 
-std::vector<std::string> split_strings(const std::string &msg, std::string sep, bool trimBlank)
+std::vector<std::string> string_split(const std::string &msg, std::string sep, bool trimBlank)
 {
     std::vector<std::string> vecStrs;
 
@@ -115,4 +115,15 @@ std::vector<std::string> split_strings(const std::string &msg, std::string sep, 
         vecStrs.push_back(str);
     }
     return vecStrs;
+}
+
+std::string string_cut_until_char(std::string &msg, const char ch)
+{
+    std::string message = std::move(msg);
+    int         pos = message.find(ch);
+    if (pos != std::string::npos) {
+        msg = message.substr(pos + 1);
+        return message.substr(0, pos);
+    }
+    return message;
 }

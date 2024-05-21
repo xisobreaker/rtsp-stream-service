@@ -61,13 +61,26 @@ int string_casecmp(const char *a, const char *b);
  **********************************************************/
 int string_casencmp(const char *a, const char *b, size_t n);
 
-/**********************************************************
+/**
  * 字符串修剪
- **********************************************************/
+ * @param msg 原始数据
+ * @param ch 要修剪的字符
+ */
 std::string string_trim(const std::string &msg, const char ch);
 
-/**********************************************************
+/**
  * 字符串分割
- **********************************************************/
-std::vector<std::string> split_strings(const std::string &msg, std::string sep, bool trimBlank = false);
+ * @param msg
+ * @param sep
+ * @param trimBlank 是否修剪左右空格
+ * @return 返回分割后的字符串
+ */
+std::vector<std::string> string_split(const std::string &msg, std::string sep, bool trimBlank = false);
+
+/**
+ * 截取字符串，直到分隔符
+ * @param msg
+ * @return 截取的字符
+ */
+std::string string_cut_until_char(std::string &msg, const char ch);
 #endif

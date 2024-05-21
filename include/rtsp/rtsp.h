@@ -21,9 +21,9 @@ typedef struct {
 } RTSPContext;
 
 /**********************************************************
- * RTSP Transport 元素。
+ * RTSP Transport。
  **********************************************************/
-typedef struct RTSPTransportField {
+typedef struct {
     /** interleave ids, 如果是TCP方式传输数据，每个 TCP/RTSP 数据包头以魔数 '$'，
      * stream 长度和 stream ID。 如果 stream ID 是在 interleaved_min-max 的
      * 范围内, 则此数据包属于该流。 */
@@ -124,6 +124,10 @@ void rtsp_parse_range(int *min_ptr, int *max_ptr, const char **pp);
 
 /**
  * 获取字符串，直到分割符
+ * @param buf 将分隔符前的数据拷贝到此
+ * @param buf_size buf 的最大长度
+ * @param sep 分隔符
+ * @param pp 指针地址, 函数完成后, *pp 将指向分隔符后的位置
  */
 void get_str_until_chars(char *buf, int buf_size, const char *sep, const char **pp);
 
