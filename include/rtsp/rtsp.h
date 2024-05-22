@@ -120,18 +120,9 @@ std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char 
 void rtsp_parse_range(int *min_ptr, int *max_ptr, const std::string &msg);
 
 /**
- * 获取字符串，直到分割符
- * @param buf 将分隔符前的数据拷贝到此
- * @param buf_size buf 的最大长度
- * @param sep 分隔符
- * @param pp 指针地址, 函数完成后, *pp 将指向分隔符后的位置
+ * Range npt 解析
  */
-void get_str_until_chars(char *buf, int buf_size, const char *sep, const char **pp);
-
-/**
- * 获取字符串，跳过斜杠
- */
-void get_str_skip_slash(char *buf, int buf_size, const char *sep, const char **pp);
+void rtsp_parse_range_npt(const std::string &msg, int64_t *start, int64_t *end);
 
 /**
  * RTSP transport 数据解析

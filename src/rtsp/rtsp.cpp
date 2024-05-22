@@ -51,6 +51,9 @@ void rtsp_parse_range(int *min_ptr, int *max_ptr, const std::string &msg)
     }
 }
 
+/**
+ * 网络地址转换
+ */
 int get_sockaddr(const char *buf, struct sockaddr_storage *sock)
 {
     struct addrinfo  hints = {0};
@@ -65,34 +68,6 @@ int get_sockaddr(const char *buf, struct sockaddr_storage *sock)
     memcpy(sock, ai->ai_addr, sizeof(sockaddr_storage));
     freeaddrinfo(ai);
     return 0;
-}
-
-void get_str_until_chars(char *buf, int buf_size, const char *sep, const char **pp)
-{
-    const char *p = *pp;
-    char       *q = buf;
-
-    // 跳过 SPACE_CHARS
-    p += strspn(p, SPACE_CHARS);
-    // strchr  函数返回指向在 sep 中首次出现 *p 字符的指针，未找到时返回 null
-    while (!strchr(sep, *p) && (*p != '\0')) {
-        if ((q - buf) < buf_size - 1) {
-            *q++ = *p;
-        }
-        p++;
-    }
-    if (buf_size > 0) {
-        *q = '\0';
-    }
-    *pp = p;
-}
-
-void get_str_skip_slash(char *buf, int buf_size, const char *sep, const char **pp)
-{
-    if (**pp == '/') {
-        (*pp)++;
-    }
-    get_str_until_chars(buf, buf_size, sep, pp);
 }
 
 void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const std::string &msg)
@@ -157,196 +132,35 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const std::strin
     }
 }
 
-int parse_timestr(int64_t *timeval, const char *timestr)
+int parse_timestr(int64_t *timeval, const std::string &timestr)
 {
-    if (string_casecmp(timestr, "now")) {
-        *timeval = get_current_microseconds();
+    int64_t nowTime = get_current_microseconds();
+    if (timestr == "now") {
+        *timeval = nowTime;
         return 0;
     }
 
-    //     const char              *p, *q;
-    //     int64_t                  t, now64;
-    //     time_t                   now;
-    //     struct tm                dt = {0}, tmbuf;
-    //     int                      today = 0, negative = 0, microseconds = 0,
-    //     suffix = 1000000; int                      i; static const char *const
-    //     date_fmt[] = {
-    //         "%Y - %m - %d",
-    //         "%Y%m%d",
-    //     };
-    //     static const char *const time_fmt[] = {
-    //         "%H:%M:%S",
-    //         "%H%M%S",
-    //     };
-    //     static const char *const tz_fmt[] = {
-    //         "%H:%M",
-    //         "%H%M",
-    //         "%H",
-    //     };
-
-    //     p = timestr;
-    //     q = NULL;
-    //     *timeval = INT64_MIN;
-    //     if (!duration) {
-    //         now64 =
-    //         chrono::duration_cast<chrono::microseconds>(high_resolution_clock::now().time_since_epoch()).count();
-    //         now = now64 / 1000000;
-
-    //         if (!av_strcasecmp(timestr, "now")) {
-    //             *timeval = now64;
-    //             return 0;
-    //         }
-
-    //         /* parse the year-month-day part */
-    //         for (i = 0; i < FF_ARRAY_ELEMS(date_fmt); i++) {
-    //             q = av_small_strptime(p, date_fmt[i], &dt);
-    //             if (q)
-    //                 break;
-    //         }
-
-    //         /* if the year-month-day part is missing, then take the
-    //          * current year-month-day time */
-    //         if (!q) {
-    //             today = 1;
-    //             q = p;
-    //         }
-    //         p = q;
-
-    //         if (*p == 'T' || *p == 't')
-    //             p++;
-    //         else
-    //             while (av_isspace(*p))
-    //                 p++;
-
-    //         /* parse the hour-minute-second part */
-    //         for (i = 0; i < FF_ARRAY_ELEMS(time_fmt); i++) {
-    //             q = av_small_strptime(p, time_fmt[i], &dt);
-    //             if (q)
-    //                 break;
-    //         }
-    //     } else {
-    //         /* parse timestr as a duration */
-    //         if (p[0] == '-') {
-    //             negative = 1;
-    //             ++p;
-    //         }
-    //         /* parse timestr as HH:MM:SS */
-    //         q = av_small_strptime(p, "%J:%M:%S", &dt);
-    //         if (!q) {
-    //             /* parse timestr as MM:SS */
-    //             q = av_small_strptime(p, "%M:%S", &dt);
-    //             dt.tm_hour = 0;
-    //         }
-    //         if (!q) {
-    //             char *o;
-    //             /* parse timestr as S+ */
-    //             errno = 0;
-    //             t = strtoll(p, &o, 10);
-    //             if (o == p) /* the parsing didn't succeed */
-    //                 return AVERROR(EINVAL);
-    //             if (errno == ERANGE)
-    //                 return AVERROR(ERANGE);
-    //             q = o;
-    //         } else {
-    //             t = dt.tm_hour * 3600 + dt.tm_min * 60 + dt.tm_sec;
-    //         }
-    //     }
-
-    //     /* Now we have all the fields that we can get */
-    //     if (!q)
-    //         return AVERROR(EINVAL);
-
-    //     /* parse the .m... part */
-    //     if (*q == '.') {
-    //         int n;
-    //         q++;
-    //         for (n = 100000; n >= 1; n /= 10, q++) {
-    //             if (!av_isdigit(*q))
-    //                 break;
-    //             microseconds += n * (*q - '0');
-    //         }
-    //         while (av_isdigit(*q))
-    //             q++;
-    //     }
-
-    //     if (duration) {
-    //         if (q[0] == 'm' && q[1] == 's') {
-    //             suffix = 1000;
-    //             microseconds /= 1000;
-    //             q += 2;
-    //         } else if (q[0] == 'u' && q[1] == 's') {
-    //             suffix = 1;
-    //             microseconds = 0;
-    //             q += 2;
-    //         } else if (*q == 's')
-    //             q++;
-    //     } else {
-    //         int is_utc = *q == 'Z' || *q == 'z';
-    //         int tzoffset = 0;
-    //         q += is_utc;
-    //         if (!today && !is_utc && (*q == '+' || *q == '-')) {
-    //             struct tm tz = {0};
-    //             int       sign = (*q == '+' ? -1 : 1);
-    //             q++;
-    //             p = q;
-    //             for (i = 0; i < FF_ARRAY_ELEMS(tz_fmt); i++) {
-    //                 q = av_small_strptime(p, tz_fmt[i], &tz);
-    //                 if (q)
-    //                     break;
-    //             }
-    //             if (!q)
-    //                 return AVERROR(EINVAL);
-    //             tzoffset = sign * (tz.tm_hour * 60 + tz.tm_min) * 60;
-    //             is_utc = 1;
-    //         }
-    //         if (today) { /* fill in today's date */
-    //             struct tm dt2 = is_utc ? *gmtime_r(&now, &tmbuf) :
-    //             *localtime_r(&now, &tmbuf); dt2.tm_hour = dt.tm_hour;
-    //             dt2.tm_min = dt.tm_min;
-    //             dt2.tm_sec = dt.tm_sec;
-    //             dt = dt2;
-    //         }
-    //         dt.tm_isdst = is_utc ? 0 : -1;
-    //         t = is_utc ? av_timegm(&dt) : mktime(&dt);
-    //         t += tzoffset;
-    //     }
-
-    //     /* Check that we are at the end of the string */
-    //     if (*q)
-    //         return AVERROR(EINVAL);
-
-    //     if (INT64_MAX / suffix < t || t < INT64_MIN / suffix)
-    //         return AVERROR(ERANGE);
-    //     t *= suffix;
-    //     if (INT64_MAX - microseconds < t)
-    //         return AVERROR(ERANGE);
-    //     t += microseconds;
-    //     if (t == INT64_MIN && negative)
-    //         return AVERROR(ERANGE);
-    //     *timeval = negative ? -t : t;
+    double value = std::stod(timestr);
+    *timeval = nowTime + (value * 1000000);
     return 0;
 }
 
-void rtsp_parse_range_npt(const char *ptr, int64_t *start, int64_t *end)
+void rtsp_parse_range_npt(const std::string &msg, int64_t *start, int64_t *end)
 {
-    char buf[256];
-    ptr += strspn(ptr, SPACE_CHARS);
-    if (!string_istart(ptr, "npt=", &ptr)) {
+    std::string message = msg;
+    if (!string_start_and_cut(message, "npt="))
         return;
-    }
 
     *start = RTSP_NOPTS_VALUE;
     *end = RTSP_NOPTS_VALUE;
 
-    get_str_until_chars(buf, sizeof(buf), "-", &ptr);
-    if (parse_timestr(start, buf)) {
-        return;
-    } else {
-        if (*ptr == '-') {
-            ptr++;
-            get_str_until_chars(buf, sizeof(buf), "-", &ptr);
-            parse_timestr(end, buf);
-        }
+    auto vec = string_split(message, "-");
+    if (vec.size() >= 1) {
+        parse_timestr(start, vec[0]);
+    }
+
+    if (vec.size() >= 2) {
+        parse_timestr(end, vec[1]);
     }
 }
 
@@ -372,7 +186,7 @@ void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *msg, cons
             ctx->get_parameter_supported = 1;
         }
     } else if (string_start_and_cut(message, "Range:")) {
-        // rtsp_parse_range_npt(ptr, &reply->range_start, &reply->range_end);
+        rtsp_parse_range_npt(message, &reply->range_start, &reply->range_end);
     } else if (string_start_and_cut(message, "RTP-Info:")) {
         if (method && !strcmp(method, "PLAY")) {
             // rtsp_parse_rtp_info(rt, p);

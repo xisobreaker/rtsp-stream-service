@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-TEST(TEST_RTSP_PARSE, DIGEST_AUTH)
+TEST(TEST_RTSP_PARSE, RTSP_PARSE)
 {
     RTSPContext ctx;
     RTSPMessage reply;
@@ -20,12 +20,12 @@ TEST(TEST_RTSP_PARSE, DIGEST_AUTH)
     EXPECT_STREQ(ctx.auth_state.realm, "Login to edbba66a86f75696d122e195153df0a2");
     EXPECT_STREQ(ctx.auth_state.digest_params.nonce, "ba0294a902ef637b4ac19025d26d0a05");
 
-    const char *session = "Session: 2936719851115;timeout=60\r\n";
+    const char *session = "Session: 2936719851115;timeout=60";
     rtsp_parse_line(&ctx, &reply, session, "SETUP");
     EXPECT_STREQ(reply.session_id, "2936719851115");
     EXPECT_EQ(reply.timeout, 60);
 
-    const char *contentLen = "Content-Length: 465\r\n";
+    const char *contentLen = "Content-Length: 465";
     rtsp_parse_line(&ctx, &reply, contentLen, "DESCRIBE");
     EXPECT_EQ(reply.content_length, 465);
 
@@ -40,7 +40,7 @@ TEST(TEST_RTSP_PARSE, DIGEST_AUTH)
     EXPECT_EQ(reply.transports[1].server_port_min, 20908);
     EXPECT_EQ(reply.transports[1].server_port_max, 20909);
 
-    const char *range = "Range: npt=3.51-324.39\r\n";
+    const char *range = "Range: npt=0.000-";
     rtsp_parse_line(&ctx, &reply, range, "PLAY");
 }
 

@@ -95,8 +95,12 @@ struct SDPPayload {
     int                              medias_count;
 };
 
-char              *load_next_entry(char *p, char *key, char **value);
-char              *split_values(char *p, char sep, const char *fmt, ...);
+char *load_next_entry(char *p, char *key, char **value);
+char *split_values(char *p, char sep, const char *fmt, ...);
+
+/**
+ * sdp 数据解析
+ */
 struct SDPPayload *sdp_parser(const char *payload);
 std::string        str_format(const char *fmt, ...);
 std::string        sdp_format(const struct SDPPayload *sdp);
