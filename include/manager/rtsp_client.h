@@ -11,6 +11,7 @@
 #include "TcpClient.h"
 #include "rtsp_url.h"
 #include "structs.h"
+#include <vector>
 
 class RtspClient
 {
@@ -20,8 +21,13 @@ public:
 
 private:
     int  read_line(char *buffer, int maxlen);
-    bool read_rtsp_message(RTSPMessage *reply, const char *method);
-    bool rtsp_interactive(const char *method);
+    bool read_rtsp_message(std::vector<std::string> &lines);
+    bool rtsp_interactive(std::vector<std::string> &lines, const char *method, const char *header);
+    bool parse_reply(RTSPMessage *reply, const std::vector<std::string> &lines, const char *method);
+    bool rtsp_send_options();
+    bool rtsp_send_describe();
+    bool rtsp_send_setup();
+    bool rtsp_send_play();
     bool rtsp_connect();
 
 public:
