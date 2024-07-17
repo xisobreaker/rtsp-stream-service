@@ -13,15 +13,16 @@
 #include <arpa/inet.h>
 
 #define RTSP_MAX_TRANSPORTS 8
+#define RTSP_MAX_REPLY_LINE 32
 
 /**********************************************************
  * RTSP Context。
  **********************************************************/
 typedef struct {
-    int           seq;
+    int           seq; // message sequence
     char         *user_agent;
     char          session_id[512];
-    char          auth[128];
+    char          auth[128]; // auth check, username:password
     HTTPAuthState auth_state;
     char          base_uri[4096];
     int           get_parameter_supported;
@@ -65,6 +66,16 @@ typedef struct {
     int                 nb_transports; // transports 数量
     RTSPTransportField  transports[RTSP_MAX_TRANSPORTS];
 } RTSPMessage;
+
+/**********************************************************
+ * RTSP Reply。
+ **********************************************************/
+typedef struct {
+    int   line_count;
+    char *line_data[RTSP_MAX_REPLY_LINE];
+    char *content;
+    int   content_len;
+} RTSPReply;
 
 // typedef struct RTSPState {
 //     int                     nb_rtsp_streams;

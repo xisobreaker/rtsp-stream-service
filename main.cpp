@@ -1,3 +1,4 @@
+#include "include/manager/rtsp_client.h"
 #include <iostream>
 using namespace std;
 
@@ -5,6 +6,9 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    LOG(INFO) << "hello, world!";
+    std::string rtspurl = "rtsp://127.0.0.1:554/cam/realmonitor";
+    RtspClient  client(rtspurl);
+    client.connect();
+
     return 0;
 }

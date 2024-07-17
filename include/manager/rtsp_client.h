@@ -19,7 +19,9 @@ public:
     ~RtspClient();
 
 private:
-    bool rtsp_parseline();
+    int  read_line(char *buffer, int maxlen);
+    bool read_rtsp_message(RTSPMessage *reply, const char *method);
+    bool rtsp_interactive(const char *method);
     bool rtsp_connect();
 
 public:

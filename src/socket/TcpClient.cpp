@@ -4,6 +4,7 @@
 #include <cstring>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <glog/logging.h>
 
 #ifndef INVALID_SOCKET
     #define INVALID_SOCKET -1
@@ -37,9 +38,9 @@ bool TcpClient::connect(const char *ip, uint16_t port)
 
     struct sockaddr_in sock_addr;
     memset(&sock_addr, 0, sizeof(sock_addr));
-    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_family      = AF_INET;
     sock_addr.sin_addr.s_addr = inet_addr(ip);
-    sock_addr.sin_port = htons(port);
+    sock_addr.sin_port        = htons(port);
 
     if (::connect(m_sockfd, (struct sockaddr *)&sock_addr, sizeof(sockaddr_in)) == SOCKET_ERROR) {
         this->close();
@@ -54,11 +55,12 @@ int TcpClient::send(const char *buffer, unsigned int length)
     do {
         int ret = ::send(m_sockfd, buffer + sendLen, length - sendLen, 0);
         if (ret <= 0) {
-            return -1;
+            LOG(INFO) << "send message: " << ret;
+            return ret;
         }
 
         sendLen += ret;
-    } while (sendLen == length);
+    } while (sendLen < length);
     return sendLen;
 }
 
