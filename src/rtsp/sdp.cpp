@@ -1,4 +1,5 @@
 #include "sdp.h"
+#include "strutils.h"
 
 char *load_next_entry(char *p, char *key, char **value)
 {
@@ -20,93 +21,14 @@ char *load_next_entry(char *p, char *key, char **value)
         goto fail;
     }
 
-    *key = p[0];
+    *key   = p[0];
     *value = &p[2];
     return endl;
 
 fail:
-    *key = 0;
+    *key   = 0;
     *value = nullptr;
     return nullptr;
-}
-
-char *split_values(char *p, char sep, const char *fmt, ...)
-{
-    va_list va;
-    va_start(va, fmt);
-    char *temp = p;
-
-    while (*p == sep)
-        p++;
-
-    while (*fmt) {
-        char         **s, *tmp;
-        int           *i;
-        long long int *l;
-        time_t        *t;
-
-        switch (*fmt++) {
-            case 's':
-                s = va_arg(va, char **);
-                *s = p;
-                tmp = strchr(p, sep);
-                if (tmp) {
-                    while (*tmp == sep) {
-                        *tmp++ = '\0';
-                    }
-                    p = tmp;
-                } else {
-                    p = &p[strlen(p)];
-                }
-                break;
-            case 'l':
-                l = va_arg(va, long long int *);
-                *l = strtoll(p, &tmp, 10);
-                if (tmp == p) {
-                    *p = 0;
-                } else {
-                    p = tmp;
-                }
-                break;
-            case 'i':
-                i = va_arg(va, int *);
-                *i = strtol(p, &tmp, 10);
-                if (tmp == p) {
-                    *p = 0;
-                } else {
-                    p = tmp;
-                }
-                break;
-            case 't':
-                t = va_arg(va, time_t *);
-                *t = strtol(p, &tmp, 10);
-                if (tmp == p) {
-                    *p = 0;
-                } else {
-                    p = tmp;
-                    switch (*p) {
-                        case 'd':
-                            *t *= 86400;
-                            *p++;
-                            break;
-                        case 'h':
-                            *t *= 3600;
-                            *p++;
-                            break;
-                        case 'm':
-                            *t *= 60;
-                            *p++;
-                            break;
-                    }
-                }
-                break;
-        }
-        while (*p == sep) {
-            p++;
-        }
-    }
-    va_end(va);
-    return p;
 }
 
 #define ALLOCATE_MEM(filed)                                                       \
@@ -117,7 +39,7 @@ char *split_values(char *p, char sep, const char *fmt, ...)
                 goto fail;                                                        \
             }                                                                     \
         } else {                                                                  \
-            int    n = filed##_count;                                             \
+            int    n         = filed##_count;                                     \
             char **new_filed = (char **)realloc(filed, sizeof(*filed) * (n + 1)); \
             if (!new_filed) {                                                     \
                 goto fail;                                                        \
@@ -157,7 +79,7 @@ struct SDPPayload *sdp_parser(const char *payload)
         goto fail;
     } else {
         struct sdp_origin *o = &sdp->origin;
-        split_values(value, ' ', "sllsss", &o->username, &o->sess_id, &o->sess_version, &o->nettype, &o->addrtype, &o->addr);
+        str_split_values(value, ' ', "sllsss", &o->username, &o->sess_id, &o->sess_version, &o->nettype, &o->addrtype, &o->addr);
     }
 
     /* s=  (session name) */
@@ -171,33 +93,33 @@ struct SDPPayload *sdp_parser(const char *payload)
     p = load_next_entry(p, &key, &value);
     if (key == 'i') {
         sdp->session_info = value;
-        p = load_next_entry(p, &key, &value);
+        p                 = load_next_entry(p, &key, &value);
     }
 
     /* u=* (URI of description) */
     if (key == 'u') {
         sdp->uri = value;
-        p = load_next_entry(p, &key, &value);
+        p        = load_next_entry(p, &key, &value);
     }
 
     /* e=* (email address) */
     while (key == 'e') {
         ALLOCATE_MEM(sdp->emails);
         sdp->emails[sdp->emails_count++] = value;
-        p = load_next_entry(p, &key, &value);
+        p                                = load_next_entry(p, &key, &value);
     }
 
     /* p=* (phone number) */
     while (key == 'p') {
         ALLOCATE_MEM(sdp->phones);
         sdp->phones[sdp->phones_count++] = value;
-        p = load_next_entry(p, &key, &value);
+        p                                = load_next_entry(p, &key, &value);
     }
 
     /* c=* (connection information -- not required if included in all media) */
     if (key == 'c') {
         struct sdp_connection *c = &sdp->conn;
-        split_values(value, ' ', "sss", &c->nettype, &c->addrtype, &c->address);
+        str_split_values(value, ' ', "sss", &c->nettype, &c->addrtype, &c->address);
         p = load_next_entry(p, &key, &value);
     }
 
@@ -217,7 +139,7 @@ struct SDPPayload *sdp_parser(const char *payload)
             memset(&sdp->bw[sdp->bw_count], 0, sizeof(sdp_bandwidth));
         }
         int n = sdp->bw_count++;
-        split_values(value, ':', "ss", &sdp->bw[n].bwtype, &sdp->bw[n].bandwidth);
+        str_split_values(value, ':', "ss", &sdp->bw[n].bwtype, &sdp->bw[n].bandwidth);
         p = load_next_entry(p, &key, &value);
     }
 
@@ -239,7 +161,7 @@ struct SDPPayload *sdp_parser(const char *payload)
             memset(&sdp->times[sdp->times_count], 0, sizeof(sdp_time));
         }
         struct sdp_time *t = &sdp->times[sdp->times_count++];
-        split_values(value, ' ', "tt", &t->starttime, &t->stoptime);
+        str_split_values(value, ' ', "tt", &t->starttime, &t->stoptime);
         p = load_next_entry(p, &key, &value);
 
         while (key == 'r') {
@@ -257,7 +179,7 @@ struct SDPPayload *sdp_parser(const char *payload)
                 memset(&t->repeat[t->repeat_count], 0, sizeof(sdp_repeat));
             }
             struct sdp_repeat *r = &t->repeat[t->repeat_count++];
-            value = split_values(value, ' ', "tt", &r->interval, &r->duration);
+            value                = str_split_values(value, ' ', "tt", &r->interval, &r->duration);
             while (*value) {
                 if (!r->offsets) {
                     r->offsets = (time_t *)calloc(1, sizeof(time_t));
@@ -269,11 +191,11 @@ struct SDPPayload *sdp_parser(const char *payload)
                     if (!new_offsets) {
                         goto fail;
                     }
-                    r->offsets = new_offsets;
+                    r->offsets                   = new_offsets;
                     r->offsets[r->offsets_count] = 0;
                 }
                 int n = r->offsets_count++;
-                value = split_values(value, ' ', "t", &r->offsets[n]);
+                value = str_split_values(value, ' ', "t", &r->offsets[n]);
             }
             p = load_next_entry(p, &key, &value);
         }
@@ -289,7 +211,7 @@ struct SDPPayload *sdp_parser(const char *payload)
                 }
             } else {
                 struct sdp_timezone_adjustments *new_timezone_adj = NULL;
-                new_timezone_adj = (sdp_timezone_adjustments *)realloc(sdp->timezone_adj,
+                new_timezone_adj                                  = (sdp_timezone_adjustments *)realloc(sdp->timezone_adj,
                                                                        sizeof(sdp_timezone_adjustments) * (sdp->timezone_adj_count + 1));
                 if (!new_timezone_adj) {
                     goto fail;
@@ -298,7 +220,7 @@ struct SDPPayload *sdp_parser(const char *payload)
                 memset(&sdp->timezone_adj[sdp->timezone_adj_count], 0, sizeof(sdp_timezone_adjustments));
             }
             struct sdp_timezone_adjustments *tz_adj = &sdp->timezone_adj[sdp->timezone_adj_count++];
-            value = split_values(value, ' ', "tt", &tz_adj->adjust, &tz_adj->offset);
+            value                                   = str_split_values(value, ' ', "tt", &tz_adj->adjust, &tz_adj->offset);
         }
         p = load_next_entry(p, &key, &value);
     }
@@ -306,13 +228,13 @@ struct SDPPayload *sdp_parser(const char *payload)
     /**/
     if (key == 'k') {
         sdp->encrypt_key = value;
-        p = load_next_entry(p, &key, &value);
+        p                = load_next_entry(p, &key, &value);
     }
 
     while (key == 'a') {
         ALLOCATE_MEM(sdp->attributes);
         sdp->attributes[sdp->attributes_count++] = value;
-        p = load_next_entry(p, &key, &value);
+        p                                        = load_next_entry(p, &key, &value);
     }
 
     while (key == 'm') {
@@ -324,29 +246,29 @@ struct SDPPayload *sdp_parser(const char *payload)
         sdp->medias = new_medias;
 
         struct sdp_media *m = &sdp->medias[sdp->medias_count++];
-        value = split_values(value, ' ', "s", &m->info.type);
-        m->info.port = strtol(value, &value, 10);
+        value               = str_split_values(value, ' ', "s", &m->info.type);
+        m->info.port        = strtol(value, &value, 10);
         if (*value == '/') {
             m->info.port_n = strtol(value + 1, &value, 10);
         }
-        value = split_values(value, ' ', "s", &m->info.proto);
+        value = str_split_values(value, ' ', "s", &m->info.proto);
         while (*value) {
             int *new_fmt = (int *)realloc(m->info.fmt, sizeof(int));
             if (!new_fmt) {
                 goto fail;
             }
             m->info.fmt = new_fmt;
-            value = split_values(value, ' ', "i", &m->info.fmt[m->info.fmt_count++]);
+            value       = str_split_values(value, ' ', "i", &m->info.fmt[m->info.fmt_count++]);
         }
 
         p = load_next_entry(p, &key, &value);
         if (key == 'i') {
             m->title = value;
-            p = load_next_entry(p, &key, &value);
+            p        = load_next_entry(p, &key, &value);
         }
 
         if (key == 'c') {
-            split_values(value, ' ', "sss", &m->conn.nettype, &m->conn.addrtype, &m->conn.address);
+            str_split_values(value, ' ', "sss", &m->conn.nettype, &m->conn.addrtype, &m->conn.address);
             p = load_next_entry(p, &key, &value);
         }
 
@@ -358,19 +280,19 @@ struct SDPPayload *sdp_parser(const char *payload)
             m->bw = new_bw;
             memset(&m->bw[m->bw_count], 0, sizeof(sdp_bandwidth));
             int n = m->bw_count++;
-            split_values(value, ':', "ss", &m->bw[n].bwtype, &m->bw[n].bandwidth);
+            str_split_values(value, ':', "ss", &m->bw[n].bwtype, &m->bw[n].bandwidth);
             p = load_next_entry(p, &key, &value);
         }
 
         if (key == 'k') {
             m->encrypt_key = value;
-            p = load_next_entry(p, &key, &value);
+            p              = load_next_entry(p, &key, &value);
         }
 
         while (key == 'a') {
             ALLOCATE_MEM(m->attributes);
             m->attributes[m->attributes_count++] = value;
-            p = load_next_entry(p, &key, &value);
+            p                                    = load_next_entry(p, &key, &value);
         }
     }
 
@@ -379,17 +301,6 @@ struct SDPPayload *sdp_parser(const char *payload)
 fail:
     sdp_destroy(sdp);
     return NULL;
-}
-
-std::string str_format(const char *fmt, ...)
-{
-    char    str_bytes[1024] = {0};
-    va_list ap;
-    va_start(ap, fmt);
-    int n = vsnprintf(str_bytes, 1024, fmt, ap);
-    va_end(ap);
-    std::string str_fmt = str_bytes;
-    return str_fmt;
 }
 
 std::string sdp_format(const struct SDPPayload *sdp)

@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-size_t string_copy(char *dst, const char *src, size_t maxlen)
+size_t str_copy(char *dst, const char *src, size_t maxlen)
 {
     size_t len = 0;
     while (++len < maxlen && *src) {
@@ -17,13 +17,13 @@ size_t string_copy(char *dst, const char *src, size_t maxlen)
     return len - 1;
 }
 
-size_t string_lcat(char *dst, const char *src, size_t maxlen)
+size_t str_lcat(char *dst, const char *src, size_t maxlen)
 {
     size_t len = strlen(dst);
     if (maxlen <= len + 1) {
         return len + strlen(src);
     }
-    return len + string_copy(dst + len, src, maxlen - len);
+    return len + str_copy(dst + len, src, maxlen - len);
 }
 
 size_t snprint_lcatf(char *dst, size_t maxlen, const char *fmt, ...)
@@ -32,7 +32,7 @@ size_t snprint_lcatf(char *dst, size_t maxlen, const char *fmt, ...)
     va_list vargs;
 
     va_start(vargs, fmt);
-    char  *buf = dst + len;
+    char  *buf  = dst + len;
     size_t size = maxlen > len ? maxlen - len : 0;
     len += vsnprintf(buf, size, fmt, vargs);
     va_end(vargs);
@@ -40,7 +40,7 @@ size_t snprint_lcatf(char *dst, size_t maxlen, const char *fmt, ...)
     return len;
 }
 
-bool string_istart(const char *str, const char *prefix, const char **ptr)
+bool str_istart(const char *str, const char *prefix, const char **ptr)
 {
     while (*prefix && ch_tolower(*prefix) == ch_tolower(*str)) {
         prefix++;
@@ -52,7 +52,7 @@ bool string_istart(const char *str, const char *prefix, const char **ptr)
     return !(*prefix);
 }
 
-int string_casecmp(const char *a, const char *b)
+int str_casecmp(const char *a, const char *b)
 {
     uint8_t c1, c2;
     do {
@@ -62,7 +62,7 @@ int string_casecmp(const char *a, const char *b)
     return c1 - c2;
 }
 
-int string_casencmp(const char *a, const char *b, size_t n)
+int str_casencmp(const char *a, const char *b, size_t n)
 {
     uint8_t c1, c2;
     if (n <= 0)
@@ -74,7 +74,7 @@ int string_casencmp(const char *a, const char *b, size_t n)
     return c1 - c2;
 }
 
-std::string string_trim(const std::string &msg, const char ch)
+std::string str_trim(const std::string &msg, const char ch)
 {
     std::string message = msg;
     while (message.length() > 0) {
@@ -92,7 +92,7 @@ std::string string_trim(const std::string &msg, const char ch)
     return message;
 }
 
-std::vector<std::string> string_split(const std::string &msg, std::string sep, bool trimBlank)
+std::vector<std::string> str_split(const std::string &msg, std::string sep, bool trimBlank)
 {
     std::vector<std::string> vecStrs;
 
@@ -101,7 +101,7 @@ std::vector<std::string> string_split(const std::string &msg, std::string sep, b
         if (start != pos) {
             std::string str = msg.substr(start, pos - start);
             if (trimBlank) {
-                str = string_trim(str, ' ');
+                str = str_trim(str, ' ');
             }
             vecStrs.push_back(str);
         }
@@ -110,14 +110,14 @@ std::vector<std::string> string_split(const std::string &msg, std::string sep, b
     if (start != msg.length()) {
         std::string str = msg.substr(start);
         if (trimBlank) {
-            str = string_trim(str, ' ');
+            str = str_trim(str, ' ');
         }
         vecStrs.push_back(str);
     }
     return vecStrs;
 }
 
-std::string string_cut_until_char(std::string &msg, std::string seps, bool keepSep)
+std::string str_cut_until_char(std::string &msg, std::string seps, bool keepSep)
 {
     std::string message = std::move(msg);
     for (int i = 0; i < message.length(); i++) {
@@ -133,7 +133,7 @@ std::string string_cut_until_char(std::string &msg, std::string seps, bool keepS
     return message;
 }
 
-bool string_starts_with(const std::string &str, std::string start)
+bool str_starts_with(const std::string &str, std::string start)
 {
     auto startLen = start.size();
     if (str.size() >= startLen) {
@@ -143,9 +143,9 @@ bool string_starts_with(const std::string &str, std::string start)
     return false;
 }
 
-bool string_start_and_cut(std::string &msg, std::string start, bool skipSpace)
+bool str_start_and_cut(std::string &msg, std::string start, bool skipSpace)
 {
-    if (!string_starts_with(msg, start)) {
+    if (!str_starts_with(msg, start)) {
         return false;
     }
 
@@ -157,4 +157,93 @@ bool string_start_and_cut(std::string &msg, std::string start, bool skipSpace)
     }
     msg = msg.substr(startPos, msg.length());
     return true;
+}
+
+std::string str_format(const char *fmt, ...)
+{
+    char    buf[4096] = {0};
+    va_list args;
+    va_start(args, fmt);
+    int n = vsnprintf(buf, 4096, fmt, args);
+    va_end(args);
+    return std::string(buf);
+}
+
+char *str_split_values(char *p, char sep, const char *fmt, ...)
+{
+    va_list va;
+    va_start(va, fmt);
+    char *temp = p;
+
+    while (*p == sep)
+        p++;
+
+    while (*fmt) {
+        char         **s, *tmp;
+        int           *i;
+        long long int *l;
+        time_t        *t;
+
+        switch (*fmt++) {
+            case 's':
+                s   = va_arg(va, char **);
+                *s  = p;
+                tmp = strchr(p, sep);
+                if (tmp) {
+                    while (*tmp == sep) {
+                        *tmp++ = '\0';
+                    }
+                    p = tmp;
+                } else {
+                    p = &p[strlen(p)];
+                }
+                break;
+            case 'l':
+                l  = va_arg(va, long long int *);
+                *l = strtoll(p, &tmp, 10);
+                if (tmp == p) {
+                    *p = 0;
+                } else {
+                    p = tmp;
+                }
+                break;
+            case 'i':
+                i  = va_arg(va, int *);
+                *i = strtol(p, &tmp, 10);
+                if (tmp == p) {
+                    *p = 0;
+                } else {
+                    p = tmp;
+                }
+                break;
+            case 't':
+                t  = va_arg(va, time_t *);
+                *t = strtol(p, &tmp, 10);
+                if (tmp == p) {
+                    *p = 0;
+                } else {
+                    p = tmp;
+                    switch (*p) {
+                        case 'd':
+                            *t *= 86400;
+                            *p++;
+                            break;
+                        case 'h':
+                            *t *= 3600;
+                            *p++;
+                            break;
+                        case 'm':
+                            *t *= 60;
+                            *p++;
+                            break;
+                    }
+                }
+                break;
+        }
+        while (*p == sep) {
+            p++;
+        }
+    }
+    va_end(va);
+    return p;
 }

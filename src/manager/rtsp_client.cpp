@@ -1,6 +1,7 @@
 #include "rtsp_client.h"
 #include "rtsp.h"
 #include "rtsp_url.h"
+#include "sdp.h"
 #include "structs.h"
 #include <glog/logging.h>
 
@@ -105,8 +106,13 @@ bool RtspClient::rtsp_send_describe()
     if (!parse_reply(reply, lines, "DESCRIBE"))
         return false;
 
-    char buf[2048] = {0};
-    m_client.recv(buf, reply->content_length);
+    char buf[4096] = {0};
+    if (m_client.recv(buf, reply->content_length) <= 0) {
+        LOG(WARNING) << "recv content error: " << buf;
+        return false;
+    }
+    LOG(INFO) << "content: \n" << buf;
+    struct SDPPayload *sdp = sdp_parser(buf);
     return true;
 }
 

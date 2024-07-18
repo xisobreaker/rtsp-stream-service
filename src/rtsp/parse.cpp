@@ -6,7 +6,7 @@
 
 void rtsp_parse_range(int *min_ptr, int *max_ptr, const std::string &msg)
 {
-    auto vec = string_split(msg, "-");
+    auto vec = str_split(msg, "-");
     if (vec.size() == 2) {
         *min_ptr = std::stoi(vec[0]);
         *max_ptr = std::stoi(vec[1]);
@@ -22,7 +22,7 @@ void rtsp_parse_range(int *min_ptr, int *max_ptr, const std::string &msg)
 int get_sockaddr(const char *buf, struct sockaddr_storage *sock)
 {
     struct addrinfo  hints = {0};
-    struct addrinfo *ai = NULL;
+    struct addrinfo *ai    = NULL;
     int              ret;
 
     hints.ai_flags = AI_NUMERICHOST;
@@ -37,21 +37,21 @@ int get_sockaddr(const char *buf, struct sockaddr_storage *sock)
 
 void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const std::string &msg)
 {
-    reply->nb_transports = 0;
+    reply->nb_transports        = 0;
     std::string lower_transport = "UDP";
 
-    auto vecTransports = string_split(msg, "\r\n");
+    auto vecTransports = str_split(msg, "\r\n");
     for (int i = 0; i < vecTransports.size(); i++) {
         if (reply->nb_transports >= RTSP_MAX_TRANSPORTS)
             break;
 
-        RTSPTransportField *transport = &reply->transports[reply->nb_transports];
-        std::string         transport_protocol = string_cut_until_char(vecTransports[i], "/");
+        RTSPTransportField *transport          = &reply->transports[reply->nb_transports];
+        std::string         transport_protocol = str_cut_until_char(vecTransports[i], "/");
         if (transport_protocol == "RTP") {
-            std::string profile = string_cut_until_char(vecTransports[i], "/;,", true);
+            std::string profile = str_cut_until_char(vecTransports[i], "/;,", true);
             if (vecTransports[i].at(0) == '/') {
                 vecTransports[i] = vecTransports[i].substr(1, vecTransports[i].length());
-                lower_transport = string_cut_until_char(vecTransports[i], ";,");
+                lower_transport  = str_cut_until_char(vecTransports[i], ";,");
             } else if (vecTransports[i].at(0) == ';' || vecTransports[i].at(0) == ',') {
                 vecTransports[i] = vecTransports[i].substr(1, vecTransports[i].length());
             }
@@ -66,9 +66,9 @@ void rtsp_parse_transport(RTSPContext *ctx, RTSPMessage *reply, const std::strin
             transport->lower_transport = RTSP_LOWER_TRANSPORT_UDP;
         }
 
-        auto vecStrs = string_split(vecTransports[i], ";");
+        auto vecStrs = str_split(vecTransports[i], ";");
         for (auto &field : vecStrs) {
-            std::string str = string_cut_until_char(field, "=");
+            std::string str = str_cut_until_char(field, "=");
             if (str == "multicast") {
                 if (transport->lower_transport == RTSP_LOWER_TRANSPORT_UDP) {
                     transport->lower_transport = RTSP_LOWER_TRANSPORT_UDP_MULTICAST;
@@ -106,20 +106,20 @@ int parse_timestr(int64_t *timeval, const std::string &timestr)
     }
 
     double value = std::stod(timestr);
-    *timeval = nowTime + (value * 1000000);
+    *timeval     = nowTime + (value * 1000000);
     return 0;
 }
 
 void rtsp_parse_range_npt(const std::string &msg, int64_t *start, int64_t *end)
 {
     std::string message = msg;
-    if (!string_start_and_cut(message, "npt="))
+    if (!str_start_and_cut(message, "npt="))
         return;
 
     *start = RTSP_NOPTS_VALUE;
-    *end = RTSP_NOPTS_VALUE;
+    *end   = RTSP_NOPTS_VALUE;
 
-    auto vec = string_split(message, "-");
+    auto vec = str_split(message, "-");
     if (vec.size() >= 1) {
         parse_timestr(start, vec[0]);
     }
@@ -133,34 +133,34 @@ void http_auth_handle_header(HTTPAuthState *state, const std::string &key, const
 {
     if (key == "WWW-Authenticate" || key == "Proxy-Authenticate") {
         std::string message = value;
-        if (string_start_and_cut(message, "Basic ") && state->auth_type <= HTTP_AUTH_BASIC) {
+        if (str_start_and_cut(message, "Basic ") && state->auth_type <= HTTP_AUTH_BASIC) {
             state->auth_type = HTTP_AUTH_BASIC;
-            auto vecStrs = string_split(message, ",", true);
+            auto vecStrs     = str_split(message, ",", true);
             for (const auto &str : vecStrs) {
                 const char *ptr = nullptr;
-                if (string_istart(str.c_str(), "realm=", &ptr)) {
-                    std::string s = string_trim(ptr, '\"');
+                if (str_istart(str.c_str(), "realm=", &ptr)) {
+                    std::string s = str_trim(ptr, '\"');
                     strncpy(state->realm, s.c_str(), s.length());
                 }
             }
-        } else if (string_start_and_cut(message, "Digest ") && state->auth_type <= HTTP_AUTH_DIGEST) {
+        } else if (str_start_and_cut(message, "Digest ") && state->auth_type <= HTTP_AUTH_DIGEST) {
             state->auth_type = HTTP_AUTH_DIGEST;
-            auto vecStrs = string_split(message, ",", true);
+            auto vecStrs     = str_split(message, ",", true);
             for (auto &str : vecStrs) {
-                if (string_start_and_cut(str, "realm=")) {
-                    std::string s = string_trim(str, '\"');
+                if (str_start_and_cut(str, "realm=")) {
+                    std::string s = str_trim(str, '\"');
                     strncpy(state->realm, s.c_str(), s.length());
-                } else if (string_start_and_cut(str, "nonce=")) {
-                    std::string s = string_trim(str, '\"');
+                } else if (str_start_and_cut(str, "nonce=")) {
+                    std::string s = str_trim(str, '\"');
                     strncpy(state->digest_params.nonce, s.c_str(), s.length());
                 }
             }
         }
     } else if (key == "Authentication-Info") {
-        auto vecStrs = string_split(value, ",", true);
+        auto vecStrs = str_split(value, ",", true);
         for (auto &str : vecStrs) {
-            if (string_start_and_cut(str, "nextnonce=")) {
-                std::string s = string_trim(str, '\"');
+            if (str_start_and_cut(str, "nextnonce=")) {
+                std::string s = str_trim(str, '\"');
                 strncpy(state->digest_params.nonce, s.c_str(), s.length());
             }
         }

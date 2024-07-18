@@ -16,6 +16,9 @@
 #include <cstring>
 #include <string>
 
+/**********************************************************
+ * SDP 源信息。
+ **********************************************************/
 struct sdp_origin {
     char         *username;
     long long int sess_id;
@@ -25,17 +28,26 @@ struct sdp_origin {
     char         *addr;
 };
 
+/**********************************************************
+ * SDP 连接信息。
+ **********************************************************/
 struct sdp_connection {
     char *nettype;
     char *addrtype;
     char *address;
 };
 
+/**********************************************************
+ * SDP 媒体信息。
+ **********************************************************/
 struct sdp_bandwidth {
     char *bwtype;
     char *bandwidth;
 };
 
+/**********************************************************
+ * SDP 媒体信息。
+ **********************************************************/
 struct sdp_repeat {
     time_t  interval;
     time_t  duration;
@@ -43,6 +55,9 @@ struct sdp_repeat {
     int     offsets_count;
 };
 
+/**********************************************************
+ * SDP 时间信息。
+ **********************************************************/
 struct sdp_time {
     time_t             starttime;
     time_t             stoptime;
@@ -50,11 +65,17 @@ struct sdp_time {
     int                repeat_count;
 };
 
+/**********************************************************
+ * SDP 媒体信息。
+ **********************************************************/
 struct sdp_timezone_adjustments {
     time_t adjust;
     time_t offset;
 };
 
+/**********************************************************
+ * SDP 媒体信息。
+ **********************************************************/
 struct sdp_mediainfo {
     char *type;
     int   port;
@@ -64,6 +85,9 @@ struct sdp_mediainfo {
     int   fmt_count;
 };
 
+/**********************************************************
+ * SDP 媒体信息。
+ **********************************************************/
 struct sdp_media {
     struct sdp_mediainfo  info;
     char                 *title;
@@ -103,13 +127,22 @@ struct SDPPayload {
     int                              medias_count;
 };
 
+/**
+ * @brief 读取下一节点信息
+ *
+ * @param p
+ * @param key
+ * @param value
+ * @return char*
+ */
 char *load_next_entry(char *p, char *key, char **value);
-char *split_values(char *p, char sep, const char *fmt, ...);
 
 /**
- * sdp 数据解析
+ * @brief sdp 数据解析
+ *
+ * @param payload
+ * @return struct SDPPayload*
  */
 struct SDPPayload *sdp_parser(const char *payload);
-std::string        str_format(const char *fmt, ...);
 std::string        sdp_format(const struct SDPPayload *sdp);
 void               sdp_destroy(struct SDPPayload *sdp);
