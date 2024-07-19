@@ -9,12 +9,13 @@ public:
     ~TcpServer();
 
 private:
-    bool reuseaddr();
+    bool reuseaddr(int sockfd);
 
 public:
-    bool listen(int flags = 2);
+    bool bind(int flags = 2);
+    bool listen();
 
 private:
-    uint16_t m_listenPort;
+    uint16_t m_port;
     int      m_sockfd;
 };

@@ -113,6 +113,7 @@ bool RtspClient::rtsp_send_describe()
     }
     LOG(INFO) << "content: \n" << buf;
     struct SDPPayload *sdp = sdp_parser(buf);
+    sdp_print(sdp);
     return true;
 }
 

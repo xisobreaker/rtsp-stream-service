@@ -128,21 +128,31 @@ struct SDPPayload {
 };
 
 /**
- * @brief 读取下一节点信息
- *
- * @param p
- * @param key
- * @param value
- * @return char*
- */
-char *load_next_entry(char *p, char *key, char **value);
-
-/**
  * @brief sdp 数据解析
  *
  * @param payload
  * @return struct SDPPayload*
  */
 struct SDPPayload *sdp_parser(const char *payload);
-std::string        sdp_format(const struct SDPPayload *sdp);
-void               sdp_destroy(struct SDPPayload *sdp);
+
+/**
+ * @brief
+ *
+ * @param sdp
+ * @return std::string
+ */
+std::string sdp_format(const struct SDPPayload *sdp);
+
+/**
+ * @brief sdp 销毁
+ *
+ * @param sdp
+ */
+void sdp_destroy(struct SDPPayload *&sdp);
+
+/**
+ * @brief
+ *
+ * @param sdp
+ */
+void sdp_print(const struct SDPPayload *sdp);

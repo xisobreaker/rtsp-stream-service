@@ -19,8 +19,8 @@
  * RTSP Context。
  **********************************************************/
 typedef struct {
-    int           seq; // message sequence
-    char         *user_agent;
+    int           seq;        // message sequence
+    char         *user_agent; // 用户代理
     char          session_id[512];
     char          auth[128]; // auth check, username:password
     HTTPAuthState auth_state;

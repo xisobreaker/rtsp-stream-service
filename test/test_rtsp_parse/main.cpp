@@ -1,6 +1,7 @@
 #include "http_auth.h"
 #include "rtsp.h"
 #include "rtsp_url.h"
+#include "sdp.h"
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
@@ -42,6 +43,33 @@ TEST(TEST_RTSP_PARSE, RTSP_PARSE)
 
     const char *range = "Range: npt=0.000-";
     rtsp_parse_line(&ctx, &reply, range, "PLAY");
+}
+
+TEST(TEST_RTSP_PARSE, SDP_PARSE)
+{
+    std::string msg =
+        "v=0\r\n"
+        "o=- 2256453820 2256453820 IN IP4 0.0.0.0\r\n"
+        "s=Media Server\r\n"
+        "c=IN IP4 0.0.0.0\r\n"
+        "t=0 0\r\n"
+        "a=control:*\r\n"
+        "a=packetization-supported:DH\r\n"
+        "a=rtppayload-supported:DH\r\n"
+        "a=range:npt=now-\r\n"
+        "m=video 0 RTP/AVP 96\r\n"
+        "a=control:trackID=0\r\n"
+        "a=framerate:10.000000\r\n"
+        "a=rtpmap:96 H264/90000\r\n"
+        "a=fmtp:96 packetization-mode=1;profile-level-id=64001F;sprop-parameter-sets=Z2QAH6wbGoBQBb/m4CAgKAAAH0AAAnEHQwBj4AAas/"
+        "XeXGhgDHwAA1Z+u8uFAA==,aO44MAA=\r\n"
+        "a=recvonly\r\n";
+    struct SDPPayload *sdp = sdp_parser(msg.c_str());
+    sdp_print(sdp);
+
+    std::string sdp_message = sdp_format(sdp);
+    printf("%s", sdp_message.c_str());
+    printf("\n");
 }
 
 int main(int argc, char *argv[])

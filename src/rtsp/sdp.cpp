@@ -1,6 +1,14 @@
 #include "sdp.h"
 #include "strutils.h"
 
+/**
+ * @brief 读取下一节点信息
+ *
+ * @param p
+ * @param key
+ * @param value
+ * @return char*
+ */
 char *load_next_entry(char *p, char *key, char **value)
 {
     if (!p)
@@ -51,7 +59,7 @@ fail:
 
 struct SDPPayload *sdp_parser(const char *payload)
 {
-    struct SDPPayload *sdp = NULL;
+    struct SDPPayload *sdp = nullptr;
     char              *p, key, *value;
 
     sdp = (struct SDPPayload *)calloc(1, sizeof(struct SDPPayload));
@@ -300,12 +308,12 @@ struct SDPPayload *sdp_parser(const char *payload)
 
 fail:
     sdp_destroy(sdp);
-    return NULL;
+    return nullptr;
 }
 
 std::string sdp_format(const struct SDPPayload *sdp)
 {
-    if (sdp == NULL) {
+    if (sdp == nullptr) {
         return std::string();
     }
 
@@ -391,7 +399,7 @@ std::string sdp_format(const struct SDPPayload *sdp)
     return sdp_data;
 }
 
-void sdp_destroy(struct SDPPayload *sdp)
+void sdp_destroy(struct SDPPayload *&sdp)
 {
     if (sdp) {
         free(sdp->_payload);
@@ -415,4 +423,76 @@ void sdp_destroy(struct SDPPayload *sdp)
         free(sdp->medias);
     }
     free(sdp);
+    sdp = nullptr;
+}
+
+void sdp_print(const struct SDPPayload *sdp)
+{
+    printf("**********************************************\n");
+    printf("proto version : %d\n", sdp->proto_version);
+    printf("origin\n");
+    printf("  username    : %s\n", sdp->origin.username);
+    printf("  sess_id     : %lld\n", sdp->origin.sess_id);
+    printf("  sess_version: %lld\n", sdp->origin.sess_version);
+    printf("  nettype     : %s\n", sdp->origin.nettype);
+    printf("  addrtype    : %s\n", sdp->origin.addrtype);
+    printf("  addr        : %s\n", sdp->origin.addr);
+    printf("session name  : %s\n", sdp->session_name);
+    printf("session info  : %s\n", sdp->session_info);
+    printf("uri           : %s\n", sdp->uri);
+
+    for (int i = 0; i < sdp->emails_count; i++) {
+        printf("emails[%d]: %s\n", i, sdp->emails[i]);
+    }
+    for (int i = 0; i < sdp->phones_count; i++) {
+        printf("phones[%d]: %s\n", i, sdp->phones[i]);
+    }
+
+    printf("conn.nettype  : %s\n", sdp->conn.nettype);
+    printf("conn.addrtype : %s\n", sdp->conn.addrtype);
+    printf("conn.address  : %s\n", sdp->conn.address);
+
+    for (int i = 0; i < sdp->bw_count; i++) {
+        printf("bw[%d].bandwidth: %s\n", i, sdp->bw[i].bandwidth);
+        printf("bw[%d].bwtype   : %s\n", i, sdp->bw[i].bwtype);
+    }
+
+    for (int i = 0; i < sdp->times_count; i++) {
+        printf("times[%d].starttime: %ld\n", i, sdp->times[i].starttime);
+        printf("times[%d].stoptime : %ld\n", i, sdp->times[i].stoptime);
+        for (int j = 0; j < sdp->times[i].repeat_count; j++) {
+            printf("times[%d].repeat[%d].duration: %ld\n", i, j, sdp->times[i].repeat[j].duration);
+            printf("times[%d].repeat[%d].interval: %ld\n", i, j, sdp->times[i].repeat[j].interval);
+            for (int k = 0; k < sdp->times[i].repeat[j].offsets_count; k++) {
+                printf("times[%d].repeat[%d].offsets[%d]: %ld\n", i, j, k, sdp->times[i].repeat[j].offsets[k]);
+            }
+        }
+    }
+
+    for (int i = 0; i < sdp->timezone_adj_count; i++) {
+        printf("timezone_adj[%d].adjust : %ld\n", i, sdp->timezone_adj[i].adjust);
+        printf("timezone_adj[%d].offset : %ld\n", i, sdp->timezone_adj[i].offset);
+    }
+
+    printf("encrypt_key : %s\n", sdp->encrypt_key);
+    for (int i = 0; i < sdp->attributes_count; i++) {
+        printf("attributes[%d] : %s\n", i, sdp->attributes[i]);
+    }
+    for (int i = 0; i < sdp->medias_count; i++) {
+        printf("***************** media[%d] *******************\n", i);
+        printf("title      : %s\n", sdp->medias[i].title);
+        printf("info.type  : %s\n", sdp->medias[i].info.type);
+        printf("info.port  : %d\n", sdp->medias[i].info.port);
+        printf("info.port_n: %d\n", sdp->medias[i].info.port_n);
+        printf("info.proto : %s\n", sdp->medias[i].info.proto);
+        for (int j = 0; j < sdp->medias[i].info.fmt_count; j++) {
+            printf("info.fmt[%d]: %d\n", j, sdp->medias[i].info.fmt[j]);
+        }
+
+        for (int j = 0; j < sdp->medias[i].bw_count; j++) {
+            printf("bw[%d].bandwidth: %s\n", j, sdp->medias[i].bw[j].bandwidth);
+            printf("bw[%d].bwtype   : %s\n", j, sdp->medias[i].bw[j].bwtype);
+        }
+    }
+    printf("**********************************************\n");
 }
