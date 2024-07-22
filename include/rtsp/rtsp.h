@@ -8,6 +8,7 @@
 // =====================================================================================
 #pragma once
 
+#include "sdp.h"
 #include "structs.h"
 
 /**
@@ -28,3 +29,5 @@ std::string rtsp_method_encode(RTSPContext *ctx, const char *method, const char 
  * @param method
  */
 void rtsp_parse_line(RTSPContext *ctx, RTSPMessage *reply, const char *msg, const char *method);
+
+void rtsp_sdp_to_sdpinfo(const struct SDPPayload *sdp, RTSPStreamInfo *&info);

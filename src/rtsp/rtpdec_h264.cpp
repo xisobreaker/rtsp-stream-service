@@ -1,55 +1,109 @@
-#include "h264.h"
+#include "rtpdec_h264.h"
 #include <cmath>
+#include <cstring>
+#include "rtp_utils.h"
+#include "rtpdec.h"
 
-int U(uint8_t *pBuf, uint32_t &nStartBit, uint32_t nBitSize)
+rtp_nalu_hdr_t rtp_payload_parse_h264(unsigned char *buffer)
 {
-    int nValue = 0;
-    for (int i = 0; i < nBitSize; i++) {
-        nValue = (nValue << 1) + ((pBuf[nStartBit / 8] & (0x80 >> (nStartBit % 8))) ? 1 : 0);
-        nStartBit++;
-    }
-    return nValue;
+    rtp_nalu_hdr_t nalu_hdr;
+    uint32_t       start_bit = 0;
+    memset(&nalu_hdr, 0, sizeof(rtp_nalu_hdr_t));
+
+    nalu_hdr.f    = U(buffer, start_bit, 1);
+    nalu_hdr.nri  = U(buffer, start_bit, 2);
+    nalu_hdr.type = U(buffer, start_bit, 5);
+    return nalu_hdr;
 }
 
-unsigned int Ue(uint8_t *pBuf, uint32_t nLen, uint32_t &nStartBit)
+int parse_nalu_stap(rtp_h264_nalu_t *nalu, unsigned char *buffer)
 {
-    unsigned int nZeroNum = 0;
-    for (int i = 0; i < nLen * 8; i++) {
-        if (pBuf[nStartBit / 8] & (0x80 >> (nStartBit % 8)))
-            break;
-        nZeroNum++;
-        nStartBit++;
-    }
-
-    unsigned int nValue = 0;
-    for (int i = 0; i < nZeroNum + 1; i++) {
-        nValue = (nValue << 1) + ((pBuf[nStartBit / 8] >> (7 - nStartBit % 8)) & 0x01);
-        nStartBit++;
-    }
-    return nValue - 1;
+    int            nalu_size = (buffer[0] << 8) + buffer[1];
+    rtp_nalu_hdr_t nalu_hdr  = rtp_payload_parse_h264(buffer + 2);
+    nalu->data[0]            = 0x00;
+    nalu->data[1]            = 0x00;
+    nalu->data[2]            = 0x00;
+    nalu->data[3]            = 0x01;
+    memcpy(nalu->data + 4, buffer + 2, nalu_size);
+    nalu->type       = nalu_hdr.type;
+    nalu->size       = nalu_size + 4;
+    nalu->union_type = (nalu_hdr.f << 7) + (nalu_hdr.nri << 5) + nalu_hdr.type;
+    nalu->finish     = true;
+    return nalu_size + 2;
 }
 
-int Se(uint8_t *pBuf, uint32_t nLen, uint32_t &nStartBit)
+int parse_nalu(rtp_h264_nalu_t *nalu, unsigned char *buffer, int length)
 {
-    int    UeVal = Ue(pBuf, nLen, nStartBit);
-    double k = UeVal;
-    int    nValue = ceil(k / 2);
-    if (UeVal % 2 == 0)
-        nValue = -nValue;
-    return nValue;
-}
-
-void de_emulation_prevention(uint8_t *pBuf, uint32_t &nLen)
-{
-    int s = 0, e = 0;
-    for (int i = 0; i < nLen - 2; i++) {
-        if (0 == (pBuf[i] ^ 0x00) + (pBuf[i + 1] ^ 0x00) + (pBuf[i + 2] ^ 0x03)) {
-            for (int j = i + 2; j < nLen - 1; j++) {
-                pBuf[j] = pBuf[j + 1];
-            }
-            nLen -= 1;
+    int       pos    = 0;
+    rtp_hdr_t header = parse_rtp_header(buffer + pos);
+    pos += 12 + header.cc * 4;
+    rtp_nalu_hdr_t nalu_hdr = rtp_payload_parse_h264(buffer + pos);
+    pos += 1;
+    if (nalu_hdr.type <= 23) {
+        pos -= 1;
+        nalu->data[0] = 0x00;
+        nalu->data[1] = 0x00;
+        nalu->data[2] = 0x00;
+        nalu->data[3] = 0x01;
+        memcpy(nalu->data + 4, buffer + pos, length - pos);
+        nalu->type       = nalu_hdr.type;
+        nalu->size       = length - pos + 4;
+        nalu->union_type = (nalu_hdr.f << 7) + (nalu_hdr.nri << 5) + nalu_hdr.type;
+        nalu->finish     = true;
+        return 0;
+    } else if (nalu_hdr.type == 24) {
+        int n = parse_nalu_stap(nalu, buffer + pos);
+        return pos + n;
+    } else if (nalu_hdr.type == 25) {
+        nalu->size   = 0;
+        nalu->finish = false;
+    } else if (nalu_hdr.type == 26) {
+        nalu->size   = 0;
+        nalu->finish = false;
+    } else if (nalu_hdr.type == 27) {
+        nalu->size   = 0;
+        nalu->finish = false;
+    } else if (nalu_hdr.type == 28) {
+        int s    = (buffer[pos] >> 7) & 0x01;
+        int e    = (buffer[pos] >> 6) & 0x01;
+        int r    = (buffer[pos] >> 5) & 0x01; // 保留字节
+        int type = buffer[pos] & 0x1F;
+        if (s) {
+            buffer[pos]   = nalu->union_type & 0xFF;
+            nalu->data[0] = 0x00;
+            nalu->data[1] = 0x00;
+            nalu->data[2] = 0x00;
+            nalu->data[3] = 0x01;
+            memcpy(nalu->data + 4, buffer + pos, length - pos);
+            nalu->type       = type;
+            nalu->size       = length - pos + 4;
+            nalu->union_type = (nalu_hdr.f << 7) + (nalu_hdr.nri << 5) + type;
+            nalu->data[4]    = nalu->union_type & 0xFF;
+            nalu->finish     = false;
+        } else if (e) {
+            if (nalu->size == 0)
+                return 0;
+            pos += 1;
+            memcpy(nalu->data + nalu->size, buffer + pos, length - pos);
+            nalu->size   = length - pos + nalu->size;
+            nalu->finish = true;
+        } else {
+            if (nalu->size == 0)
+                return 0;
+            pos += 1;
+            memcpy(nalu->data + nalu->size, buffer + pos, length - pos);
+            nalu->size = length - pos + nalu->size;
         }
+        return 0;
+    } else if (nalu_hdr.type == 29) {
+        nalu->size   = 0;
+        nalu->finish = false;
+    } else {
+        printf("parse_nalu error, unknown message, %d.", nalu_hdr.type);
+        nalu->size   = 0;
+        nalu->finish = false;
     }
+    return -1;
 }
 
 int h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps)
@@ -65,21 +119,21 @@ int h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps)
     }
 
     int forbidden_zero_bit = U(pBuf, nStartBit, 1);
-    int nal_ref_idc = U(pBuf, nStartBit, 2);
-    int nal_unit_type = U(pBuf, nStartBit, 5);
+    int nal_ref_idc        = U(pBuf, nStartBit, 2);
+    int nal_unit_type      = U(pBuf, nStartBit, 5);
     if (nal_unit_type != 7) {
         return -1;
     }
 
-    sps.profile_idc = U(pBuf, nStartBit, 8);
+    sps.profile_idc          = U(pBuf, nStartBit, 8);
     sps.constraint_set0_flag = U(pBuf, nStartBit, 1);
     sps.constraint_set1_flag = U(pBuf, nStartBit, 1);
     sps.constraint_set2_flag = U(pBuf, nStartBit, 1);
     sps.constraint_set3_flag = U(pBuf, nStartBit, 1);
     sps.constraint_set4_flag = U(pBuf, nStartBit, 1);
     sps.constraint_set5_flag = U(pBuf, nStartBit, 1);
-    sps.reserved_zero_2bits = U(pBuf, nStartBit, 2);
-    sps.level_id = U(pBuf, nStartBit, 8);
+    sps.reserved_zero_2bits  = U(pBuf, nStartBit, 2);
+    sps.level_id             = U(pBuf, nStartBit, 8);
     sps.seq_parameter_set_id = Ue(pBuf, nLen, nStartBit);
     if (sps.profile_idc == 100 || sps.profile_idc == 110 || sps.profile_idc == 122 || sps.profile_idc == 144) {
         sps.chroma_format_idc = Ue(pBuf, nLen, nStartBit);
@@ -87,10 +141,10 @@ int h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps)
             sps.residual_colour_transform_flag = U(pBuf, nStartBit, 1);
         }
 
-        sps.bit_depth_luma_minus8 = Ue(pBuf, nLen, nStartBit);
-        sps.bit_depth_chroma_minus8 = Ue(pBuf, nLen, nStartBit);
+        sps.bit_depth_luma_minus8                = Ue(pBuf, nLen, nStartBit);
+        sps.bit_depth_chroma_minus8              = Ue(pBuf, nLen, nStartBit);
         sps.qpprime_y_zero_transform_bypass_flag = U(pBuf, nStartBit, 1);
-        sps.seq_scaling_matrix_present_flag = U(pBuf, nStartBit, 1);
+        sps.seq_scaling_matrix_present_flag      = U(pBuf, nStartBit, 1);
         if (sps.seq_scaling_matrix_present_flag) {
             for (int i = 0; i < 8; i++) {
                 sps.seq_scaling_list_present_flag[i] = U(pBuf, nStartBit, 1);
@@ -98,32 +152,32 @@ int h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps)
         }
     }
     sps.log2_max_frame_num_minus4 = Ue(pBuf, nLen, nStartBit);
-    sps.pic_order_cnt_type = Ue(pBuf, nLen, nStartBit);
+    sps.pic_order_cnt_type        = Ue(pBuf, nLen, nStartBit);
     if (sps.pic_order_cnt_type == 0) {
         sps.log2_max_pic_order_cnt_lsb_minus4 = Ue(pBuf, nLen, nStartBit);
     } else if (sps.pic_order_cnt_type == 1) {
-        sps.delta_pic_order_always_zero_flag = U(pBuf, nStartBit, 1);
-        sps.offset_for_non_ref_pic = Se(pBuf, nLen, nStartBit);
-        sps.offset_for_top_to_bottom_field = Se(pBuf, nLen, nStartBit);
+        sps.delta_pic_order_always_zero_flag      = U(pBuf, nStartBit, 1);
+        sps.offset_for_non_ref_pic                = Se(pBuf, nLen, nStartBit);
+        sps.offset_for_top_to_bottom_field        = Se(pBuf, nLen, nStartBit);
         sps.num_ref_frames_in_pic_order_cnt_cycle = Ue(pBuf, nLen, nStartBit);
         for (int i = 0; i < sps.num_ref_frames_in_pic_order_cnt_cycle; i++) {
             sps.offset_for_ref_frame[i] = Se(pBuf, nLen, nStartBit);
         }
     }
-    sps.num_ref_frames = Ue(pBuf, nLen, nStartBit);
+    sps.num_ref_frames                       = Ue(pBuf, nLen, nStartBit);
     sps.gaps_in_frame_num_value_allowed_flag = U(pBuf, nStartBit, 1);
-    sps.pic_width_in_mbs_minus1 = Ue(pBuf, nLen, nStartBit);
-    sps.pic_height_in_map_units_minus1 = Ue(pBuf, nLen, nStartBit);
-    sps.frame_mbs_only_flag = U(pBuf, nStartBit, 1);
+    sps.pic_width_in_mbs_minus1              = Ue(pBuf, nLen, nStartBit);
+    sps.pic_height_in_map_units_minus1       = Ue(pBuf, nLen, nStartBit);
+    sps.frame_mbs_only_flag                  = U(pBuf, nStartBit, 1);
     if (!sps.frame_mbs_only_flag) {
         sps.mb_adaptive_frame_field_flag = U(pBuf, nStartBit, 1);
     }
     sps.direct_8x8_inference_flag = U(pBuf, nStartBit, 1);
-    sps.frame_cropping_flag = U(pBuf, nStartBit, 1);
+    sps.frame_cropping_flag       = U(pBuf, nStartBit, 1);
     if (sps.frame_cropping_flag) {
-        sps.frame_crop_left_offset = Ue(pBuf, nLen, nStartBit);
-        sps.frame_crop_right_offset = Ue(pBuf, nLen, nStartBit);
-        sps.frame_crop_top_offset = Ue(pBuf, nLen, nStartBit);
+        sps.frame_crop_left_offset   = Ue(pBuf, nLen, nStartBit);
+        sps.frame_crop_right_offset  = Ue(pBuf, nLen, nStartBit);
+        sps.frame_crop_top_offset    = Ue(pBuf, nLen, nStartBit);
         sps.frame_crop_bottom_offset = Ue(pBuf, nLen, nStartBit);
     }
     sps.vui_parameter_present_flag = U(pBuf, nStartBit, 1);
@@ -132,7 +186,7 @@ int h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps)
         if (sps.aspect_ratio_info_present_flag) {
             sps.aspect_ratio_idc = U(pBuf, nStartBit, 8);
             if (sps.aspect_ratio_idc == 255) {
-                sps.sar_width = U(pBuf, nStartBit, 16);
+                sps.sar_width  = U(pBuf, nStartBit, 16);
                 sps.sar_height = U(pBuf, nStartBit, 16);
             }
         }
@@ -142,24 +196,24 @@ int h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps)
         }
         sps.video_signal_type_present_flag = U(pBuf, nStartBit, 1);
         if (sps.video_signal_type_present_flag) {
-            sps.video_format = U(pBuf, nStartBit, 3);
-            sps.video_full_range_flag = U(pBuf, nStartBit, 1);
+            sps.video_format                    = U(pBuf, nStartBit, 3);
+            sps.video_full_range_flag           = U(pBuf, nStartBit, 1);
             sps.colour_description_present_flag = U(pBuf, nStartBit, 1);
             if (sps.colour_description_present_flag) {
-                sps.colour_primaries = U(pBuf, nStartBit, 8);
+                sps.colour_primaries         = U(pBuf, nStartBit, 8);
                 sps.transfer_characteristics = U(pBuf, nStartBit, 8);
-                sps.matrix_coefficients = U(pBuf, nStartBit, 8);
+                sps.matrix_coefficients      = U(pBuf, nStartBit, 8);
             }
         }
         sps.chroma_location_info_present_flag = U(pBuf, nStartBit, 1);
         if (sps.chroma_location_info_present_flag) {
-            sps.chroma_location_type_top_filed = Ue(pBuf, nLen, nStartBit);
+            sps.chroma_location_type_top_filed    = Ue(pBuf, nLen, nStartBit);
             sps.chroma_location_type_bottom_filed = Ue(pBuf, nLen, nStartBit);
         }
         sps.timing_info_present_flag = U(pBuf, nStartBit, 1);
         if (sps.timing_info_present_flag) {
             sps.num_units_in_tick = U(pBuf, nStartBit, 32);
-            sps.time_scale = U(pBuf, nStartBit, 32);
+            sps.time_scale        = U(pBuf, nStartBit, 32);
         }
     }
     return 0;
@@ -178,8 +232,8 @@ int h264_decode_pps(uint8_t *pBuf, uint32_t nLen, pps_data_t &pps)
     }
 
     int forbidden_zero_bit = U(pBuf, nStartBit, 1);
-    int nal_ref_idc = U(pBuf, nStartBit, 2);
-    int nal_unit_type = U(pBuf, nStartBit, 5);
+    int nal_ref_idc        = U(pBuf, nStartBit, 2);
+    int nal_unit_type      = U(pBuf, nStartBit, 5);
     if (nal_unit_type != 8) {
         return -1;
     }
@@ -188,13 +242,13 @@ int h264_decode_pps(uint8_t *pBuf, uint32_t nLen, pps_data_t &pps)
 
 void h264_print_info(sps_data_t sps, pps_data_t pps)
 {
-    int width = 0;
+    int width  = 0;
     int height = 0;
-    int fps = 0;
+    int fps    = 0;
 
-    width = (sps.pic_width_in_mbs_minus1 + 1) * 16;
+    width  = (sps.pic_width_in_mbs_minus1 + 1) * 16;
     height = (sps.pic_height_in_map_units_minus1 + 1) * 16;
-    fps = sps.time_scale / (2 * sps.num_units_in_tick);
+    fps    = sps.time_scale / (2 * sps.num_units_in_tick);
 
     printf("*********************************** VIDEO INFO *************************************");
     printf("Width     : %d", width);

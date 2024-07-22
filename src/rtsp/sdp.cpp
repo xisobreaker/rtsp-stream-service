@@ -1,5 +1,6 @@
 #include "sdp.h"
 #include "strutils.h"
+#include <regex>
 
 /**
  * @brief 读取下一节点信息
@@ -71,7 +72,7 @@ struct SDPPayload *sdp_parser(const char *payload)
         goto fail;
     }
 
-    /* v=  (protocol version) */
+    /* v=0 */
     p = load_next_entry(p, &key, &value);
     if (key != 'v') {
         goto fail;
@@ -81,7 +82,7 @@ struct SDPPayload *sdp_parser(const char *payload)
         goto fail;
     }
 
-    /* o=  (originator and session identifier) */
+    /* o=<username> <session id> <version> <network type> <address type> <address> */
     p = load_next_entry(p, &key, &value);
     if (key != 'o') {
         goto fail;
@@ -90,48 +91,48 @@ struct SDPPayload *sdp_parser(const char *payload)
         str_split_values(value, ' ', "sllsss", &o->username, &o->sess_id, &o->sess_version, &o->nettype, &o->addrtype, &o->addr);
     }
 
-    /* s=  (session name) */
+    /* s=<session name> */
     p = load_next_entry(p, &key, &value);
     if (key != 's') {
         goto fail;
     }
     sdp->session_name = value;
 
-    /* i=* (session information) */
+    /* i=<session description> */
     p = load_next_entry(p, &key, &value);
     if (key == 'i') {
         sdp->session_info = value;
         p                 = load_next_entry(p, &key, &value);
     }
 
-    /* u=* (URI of description) */
+    /* u=<URI of description> */
     if (key == 'u') {
         sdp->uri = value;
         p        = load_next_entry(p, &key, &value);
     }
 
-    /* e=* (email address) */
+    /* e=<email address> */
     while (key == 'e') {
         ALLOCATE_MEM(sdp->emails);
         sdp->emails[sdp->emails_count++] = value;
         p                                = load_next_entry(p, &key, &value);
     }
 
-    /* p=* (phone number) */
+    /* p=<phone number> */
     while (key == 'p') {
         ALLOCATE_MEM(sdp->phones);
         sdp->phones[sdp->phones_count++] = value;
         p                                = load_next_entry(p, &key, &value);
     }
 
-    /* c=* (connection information -- not required if included in all media) */
+    /* c=<network type> <address type> <connection address> (not required if included in all media) */
     if (key == 'c') {
         struct sdp_connection *c = &sdp->conn;
         str_split_values(value, ' ', "sss", &c->nettype, &c->addrtype, &c->address);
         p = load_next_entry(p, &key, &value);
     }
 
-    /* b=* (zero or more bandwidth information lines) */
+    /* b=<modifier>:<bandwidth-value> (zero or more bandwidth information lines) */
     while (key == 'b') {
         if (!sdp->bw) {
             sdp->bw = (sdp_bandwidth *)calloc(1, sizeof(sdp_bandwidth));
@@ -152,8 +153,8 @@ struct SDPPayload *sdp_parser(const char *payload)
     }
 
     /* One or more time descriptions ("t=" and "r=" lines;)
-     * t=  (time the session is active)
-     * r=* (zero or more repeat times)*/
+     * t=<starttime> <stoptime>  (time the session is active)
+     * r=<repeat interval> <active duration> <list of offsets from starttime> (zero or more repeat times)*/
     while (key == 't') {
         if (!sdp->times) {
             sdp->times = (sdp_time *)calloc(1, sizeof(sdp_time));
@@ -209,7 +210,7 @@ struct SDPPayload *sdp_parser(const char *payload)
         }
     }
 
-    /**/
+    /* z=<adjustment time> <offset> <adjustment time> <offset> ... */
     if (key == 'z') {
         while (*value) {
             if (!sdp->timezone_adj) {
@@ -233,18 +234,26 @@ struct SDPPayload *sdp_parser(const char *payload)
         p = load_next_entry(p, &key, &value);
     }
 
-    /**/
+    /**
+     * k=<method>
+     * k=<method:<encryption key>
+     */
     if (key == 'k') {
         sdp->encrypt_key = value;
         p                = load_next_entry(p, &key, &value);
     }
 
+    /**
+     * a=<attribute>
+     * a=<attribute>:<value>
+     */
     while (key == 'a') {
         ALLOCATE_MEM(sdp->attributes);
         sdp->attributes[sdp->attributes_count++] = value;
         p                                        = load_next_entry(p, &key, &value);
     }
 
+    /* m=<media> <port> <transport> <fmt list> */
     while (key == 'm') {
         struct sdp_media *new_medias = (sdp_media *)realloc(sdp->medias, sizeof(sdp_media) * (sdp->medias_count + 1));
         if (!new_medias) {
@@ -478,20 +487,29 @@ void sdp_print(const struct SDPPayload *sdp)
     for (int i = 0; i < sdp->attributes_count; i++) {
         printf("attributes[%d] : %s\n", i, sdp->attributes[i]);
     }
+
     for (int i = 0; i < sdp->medias_count; i++) {
-        printf("***************** media[%d] *******************\n", i);
-        printf("title      : %s\n", sdp->medias[i].title);
-        printf("info.type  : %s\n", sdp->medias[i].info.type);
-        printf("info.port  : %d\n", sdp->medias[i].info.port);
-        printf("info.port_n: %d\n", sdp->medias[i].info.port_n);
-        printf("info.proto : %s\n", sdp->medias[i].info.proto);
+        printf("media[%d]\n", i);
+        printf("  title      : %s\n", sdp->medias[i].title);
+        printf("  info.type  : %s\n", sdp->medias[i].info.type);
+        printf("  info.port  : %d\n", sdp->medias[i].info.port);
+        printf("  info.port_n: %d\n", sdp->medias[i].info.port_n);
+        printf("  info.proto : %s\n", sdp->medias[i].info.proto);
         for (int j = 0; j < sdp->medias[i].info.fmt_count; j++) {
-            printf("info.fmt[%d]: %d\n", j, sdp->medias[i].info.fmt[j]);
+            printf("  info.fmt[%d]: %d\n", j, sdp->medias[i].info.fmt[j]);
         }
+        printf("  conn.nettype  : %s\n", sdp->medias[i].conn.nettype);
+        printf("  conn.addrtype : %s\n", sdp->medias[i].conn.addrtype);
+        printf("  conn.address  : %s\n", sdp->medias[i].conn.address);
 
         for (int j = 0; j < sdp->medias[i].bw_count; j++) {
-            printf("bw[%d].bandwidth: %s\n", j, sdp->medias[i].bw[j].bandwidth);
-            printf("bw[%d].bwtype   : %s\n", j, sdp->medias[i].bw[j].bwtype);
+            printf("  bw[%d].bandwidth: %s\n", j, sdp->medias[i].bw[j].bandwidth);
+            printf("  bw[%d].bwtype   : %s\n", j, sdp->medias[i].bw[j].bwtype);
+        }
+
+        printf("  encrypt_key : %s\n", sdp->medias[i].encrypt_key);
+        for (int j = 0; j < sdp->medias[i].attributes_count; j++) {
+            printf("  attributes[%d] : %s\n", j, sdp->medias[i].attributes[j]);
         }
     }
     printf("**********************************************\n");

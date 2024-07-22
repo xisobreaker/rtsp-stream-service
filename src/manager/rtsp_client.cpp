@@ -52,9 +52,9 @@ bool RtspClient::read_rtsp_message(std::vector<std::string> &lines)
     return true;
 }
 
-bool RtspClient::rtsp_interactive(std::vector<std::string> &lines, const char *method, const char *header)
+bool RtspClient::rtsp_interactive(std::vector<std::string> &lines, const char *method, const char *path, const char *header)
 {
-    std::string rtspcmd = rtsp_method_encode(m_ctx, method, m_info->path, header);
+    std::string rtspcmd = rtsp_method_encode(m_ctx, method, path, header);
     int         ret     = m_client.send(rtspcmd.c_str(), rtspcmd.length());
     if (ret <= 0) {
         LOG(INFO) << "send error: " << ret;
@@ -89,19 +89,19 @@ bool RtspClient::rtsp_send_options()
     RTSPMessage             *reply = new RTSPMessage;
     std::vector<std::string> lines;
 
-    if (!rtsp_interactive(lines, "OPTIONS", nullptr))
+    if (!rtsp_interactive(lines, "OPTIONS", m_info->path, nullptr))
         return false;
     if (!parse_reply(reply, lines, "OPTIONS"))
         return false;
     return true;
 }
 
-bool RtspClient::rtsp_send_describe()
+bool RtspClient::rtsp_send_describe(struct SDPPayload *&sdp)
 {
     RTSPMessage             *reply = new RTSPMessage;
     std::vector<std::string> lines;
 
-    if (!rtsp_interactive(lines, "DESCRIBE", "Accept: application/sdp\r\n"))
+    if (!rtsp_interactive(lines, "DESCRIBE", m_info->path, "Accept: application/sdp\r\n"))
         return false;
     if (!parse_reply(reply, lines, "DESCRIBE"))
         return false;
@@ -112,20 +112,23 @@ bool RtspClient::rtsp_send_describe()
         return false;
     }
     LOG(INFO) << "content: \n" << buf;
-    struct SDPPayload *sdp = sdp_parser(buf);
-    sdp_print(sdp);
+    sdp = sdp_parser(buf);
+    RTSPStreamInfo streamInfo;
     return true;
 }
 
-bool RtspClient::rtsp_send_setup()
+bool RtspClient::rtsp_send_setup(const struct SDPPayload *sdp)
 {
     RTSPMessage             *reply = new RTSPMessage;
     std::vector<std::string> lines;
 
-    if (!rtsp_interactive(lines, "SETUP", nullptr))
-        return false;
-    if (!parse_reply(reply, lines, "SETUP"))
-        return false;
+    for (int i = 0; i < sdp->medias_count; i++) {
+        std::string path = m_info->path + std::string(sdp->medias[i].attributes[0]);
+        if (!rtsp_interactive(lines, "SETUP", m_info->path, nullptr))
+            return false;
+        if (!parse_reply(reply, lines, "SETUP"))
+            return false;
+    }
     return true;
 }
 
@@ -134,7 +137,7 @@ bool RtspClient::rtsp_send_play()
     RTSPMessage             *reply = new RTSPMessage;
     std::vector<std::string> lines;
 
-    if (!rtsp_interactive(lines, "PLAY", nullptr))
+    if (!rtsp_interactive(lines, "PLAY", m_info->path, nullptr))
         return false;
     if (!parse_reply(reply, lines, "PLAY"))
         return false;
@@ -147,10 +150,11 @@ bool RtspClient::rtsp_connect()
     if (!rtsp_send_options()) {
         return false;
     }
-    if (!rtsp_send_describe()) {
+    struct SDPPayload *sdp = nullptr;
+    if (!rtsp_send_describe(sdp)) {
         return false;
     }
-    if (!rtsp_send_setup()) {
+    if (!rtsp_send_setup(sdp)) {
         return false;
     }
     if (!rtsp_send_play()) {

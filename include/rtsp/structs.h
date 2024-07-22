@@ -18,7 +18,7 @@
 /**********************************************************
  * RTSP Context。
  **********************************************************/
-typedef struct {
+struct RTSPContext {
     int           seq;        // message sequence
     char         *user_agent; // 用户代理
     char          session_id[512];
@@ -27,12 +27,12 @@ typedef struct {
     char          base_uri[4096];
     int           get_parameter_supported;
     int           accept_dynamic_rate;
-} RTSPContext;
+};
 
 /**********************************************************
  * RTSP Transport。
  **********************************************************/
-typedef struct {
+struct RTSPTransportField {
     /** interleave ids, 如果是TCP方式传输数据，每个 TCP/RTSP 数据包头以魔数 '$'，
      * stream 长度和 stream ID。 如果 stream ID 是在 interleaved_min-max 的
      * 范围内, 则此数据包属于该流。 */
@@ -47,12 +47,12 @@ typedef struct {
 
     RTSPTransport      transport;       // 数据包传输协议
     RTSPLowerTransport lower_transport; // 网络层传输协议
-} RTSPTransportField;
+};
 
 /**********************************************************
  * RTSP Message。
  **********************************************************/
-typedef struct {
+struct RTSPMessage {
     enum RTSPStatusCode status_code;            // rtsp 状态码
     int                 seq;                    // RTSP 包序号
     int64_t             range_start, range_end; // 服务将传输的流的时间范围
@@ -65,17 +65,37 @@ typedef struct {
     char                content_type[64];
     int                 nb_transports; // transports 数量
     RTSPTransportField  transports[RTSP_MAX_TRANSPORTS];
-} RTSPMessage;
+};
 
 /**********************************************************
  * RTSP Reply。
  **********************************************************/
-typedef struct {
+struct RTSPReply {
     int   line_count;
     char *line_data[RTSP_MAX_REPLY_LINE];
     char *content;
     int   content_len;
-} RTSPReply;
+};
+
+typedef struct {
+    int           stream_type; // 0,audio; 1, video; 2, application; 3, text
+    char          control_url[1024];
+    char          sdp_ip[32];
+    int           sdp_port;
+    int           sdp_ttl; // time to live
+    RTSPTransport transport;
+    int           sdp_payload_type;
+} RTSPStream;
+
+/**********************************************************
+ * RTSP STREAM INFO。
+ **********************************************************/
+struct RTSPStreamInfo {
+    char       metadata[32];
+    char       default_ip[32]; // connection address
+    int        ttl = 16;
+    RTSPStream stream[8];
+};
 
 // typedef struct RTSPState {
 //     int                     nb_rtsp_streams;

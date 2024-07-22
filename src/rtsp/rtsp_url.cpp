@@ -9,8 +9,7 @@ void split_video_url(RTSPUrlInfo *info, const char *url)
     if ((pos = strchr(url, ':'))) {
         str_copy(info->proto, url, (pos + 1 - url));
 
-        // skip ':'
-        pos++;
+        pos++; // skip ':'
         if (*pos == '/')
             pos++;
         if (*pos == '/')

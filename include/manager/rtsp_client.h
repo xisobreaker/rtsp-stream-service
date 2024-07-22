@@ -22,11 +22,11 @@ public:
 private:
     int  read_line(char *buffer, int maxlen);
     bool read_rtsp_message(std::vector<std::string> &lines);
-    bool rtsp_interactive(std::vector<std::string> &lines, const char *method, const char *header);
+    bool rtsp_interactive(std::vector<std::string> &lines, const char *method, const char *path, const char *header);
     bool parse_reply(RTSPMessage *reply, const std::vector<std::string> &lines, const char *method);
     bool rtsp_send_options();
-    bool rtsp_send_describe();
-    bool rtsp_send_setup();
+    bool rtsp_send_describe(struct SDPPayload *&sdp);
+    bool rtsp_send_setup(const struct SDPPayload *sdp);
     bool rtsp_send_play();
     bool rtsp_connect();
 

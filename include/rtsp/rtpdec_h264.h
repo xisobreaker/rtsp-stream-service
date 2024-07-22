@@ -12,6 +12,38 @@
 #include <iomanip>
 
 /**********************************************************
+ * H264 payload 类型。
+ **********************************************************/
+typedef enum {
+    RTP_PAYLOAD_STAP_A = 24,
+    RTP_PAYLOAD_STAP_B = 25,
+    RTP_PAYLOAD_MTAP16 = 26,
+    RTP_PAYLOAD_MTAP24 = 27,
+    RTP_PAYLOAD_FU_A   = 28,
+    RTP_PAYLOAD_FU_B   = 29
+} rtp_payload_h264_type_enum;
+
+/**********************************************************
+ * RTP nalu header
+ **********************************************************/
+typedef struct {
+    int f;
+    int nri;
+    int type;
+} rtp_nalu_hdr_t;
+
+/**********************************************************
+ * RTP h264 nalu
+ **********************************************************/
+typedef struct {
+    int  finish;
+    int  type;
+    int  union_type;
+    int  size;
+    char data[0];
+} rtp_h264_nalu_t;
+
+/**********************************************************
  * SPS 数据。
  **********************************************************/
 typedef struct {
@@ -23,8 +55,8 @@ typedef struct {
     int constraint_set4_flag;
     int constraint_set5_flag;
     int reserved_zero_2bits;
-    int level_id;
-    int seq_parameter_set_id;
+    int level_id;             // 标识当前码流的Level
+    int seq_parameter_set_id; // 表示当前的序列参数集的id
     int chroma_format_idc;
     int residual_colour_transform_flag;
     int bit_depth_luma_minus8;
@@ -95,16 +127,21 @@ typedef struct {
  * PPS 数据。
  **********************************************************/
 typedef struct {
+    int pic_parameter_set_id;
+    int seq_parameter_set_id;
+    int entropy_coding_mode_flag;
+    int bottom_field_pic_order_in_frame_present_flag;
+    int num_slice_groups_minus1;
 } pps_data_t;
 
-int          U(uint8_t *pBuf, uint32_t &nStartBit, uint32_t nBitSize);
-unsigned int Ue(uint8_t *pBuf, uint32_t nLen, uint32_t &nStartBit);
-int          Se(uint8_t *pBuf, uint32_t nLen, uint32_t &nStartBit);
-void         de_emulation_prevention(uint8_t *pBuf, uint32_t &nLen);
-int          h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps);
-int          h264_decode_pps(uint8_t *pBuf, uint32_t nLen, pps_data_t &pps);
-void         h264_print_info(sps_data_t sps, pps_data_t pps);
-void         h264_print_sps(sps_data_t sps);
-void         h264_print_pps(pps_data_t pps);
+rtp_nalu_hdr_t rtp_payload_parse_h264(unsigned char *buffer);
+int            parse_nalu_stap(rtp_h264_nalu_t *nalu, unsigned char *buffer);
+int            parse_nalu(rtp_h264_nalu_t *nalu, unsigned char *buffer, int length);
+
+int  h264_decode_sps(uint8_t *pBuf, uint32_t nLen, sps_data_t &sps);
+int  h264_decode_pps(uint8_t *pBuf, uint32_t nLen, pps_data_t &pps);
+void h264_print_info(sps_data_t sps, pps_data_t pps);
+void h264_print_sps(sps_data_t sps);
+void h264_print_pps(pps_data_t pps);
 
 #endif
